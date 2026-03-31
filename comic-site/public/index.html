@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MangaVault - Free Manhua & Manga</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">M</span>
+        <span class="logo-text">Manga<span class="logo-accent">Vault</span></span>
+      </a>
+      <nav class="nav-links" id="navLinks">
+        <a href="/">Home</a>
+        <a href="/browse">Browse</a>
+        <div class="dropdown">
+          <a href="#" class="dropdown-toggle">Genres <i class="fa fa-chevron-down"></i></a>
+          <div class="dropdown-menu" id="genreDropdown"></div>
+        </div>
+      </nav>
+      <div class="header-right">
+        <form class="search-form" action="/browse" method="get">
+          <input type="text" name="search" placeholder="Search comics..." class="search-input" />
+          <button type="submit" class="search-btn"><i class="fa fa-search"></i></button>
+        </form>
+        <a href="/admin" class="admin-link"><i class="fa fa-upload"></i> Upload</a>
+        <button class="hamburger" id="hamburger"><i class="fa fa-bars"></i></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO BANNER -->
+  <section class="hero" id="heroSection">
+    <div class="hero-empty">
+      <i class="fa fa-book-open"></i>
+      <p>Loading featured comics...</p>
+    </div>
+  </section>
+
+  <!-- NEW RELEASES -->
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title"><span class="accent-bar"></span> New Releases</h2>
+      <a href="/browse?sort=updated" class="see-all">See All <i class="fa fa-arrow-right"></i></a>
+    </div>
+    <div class="comics-row" id="newReleasesRow">
+      <div class="row-loading"><i class="fa fa-spinner fa-spin"></i></div>
+    </div>
+  </section>
+
+  <!-- POPULAR -->
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title"><span class="accent-bar"></span> Popular Comics</h2>
+      <a href="/browse?sort=views" class="see-all">See All <i class="fa fa-arrow-right"></i></a>
+    </div>
+    <div class="comics-grid" id="popularGrid">
+      <div class="row-loading"><i class="fa fa-spinner fa-spin"></i></div>
+    </div>
+  </section>
+
+  <!-- GENRES -->
+  <section class="section genres-section">
+    <div class="section-header">
+      <h2 class="section-title"><span class="accent-bar"></span> Browse by Genre</h2>
+    </div>
+    <div class="genre-tags" id="genreTags">
+      <div class="row-loading"><i class="fa fa-spinner fa-spin"></i></div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">M</span>
+        <span class="logo-text">Manga<span class="logo-accent">Vault</span></span>
+      </a>
+      <p class="footer-text">Free manhua & manga reading platform. All comics are free to read.</p>
+      <div class="footer-links">
+        <a href="/browse">Browse</a>
+        <a href="/admin">Upload</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+</body>
+</html>

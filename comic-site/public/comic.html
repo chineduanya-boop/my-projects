@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Comic - MangaVault</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">M</span>
+        <span class="logo-text">Manga<span class="logo-accent">Vault</span></span>
+      </a>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="/browse">Browse</a>
+      </nav>
+      <div class="header-right">
+        <form class="search-form" action="/browse" method="get">
+          <input type="text" name="search" placeholder="Search comics..." class="search-input" />
+          <button type="submit" class="search-btn"><i class="fa fa-search"></i></button>
+        </form>
+        <a href="/admin" class="admin-link"><i class="fa fa-upload"></i> Upload</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="comic-detail-page" id="comicDetailPage">
+    <div class="detail-loading"><i class="fa fa-spinner fa-spin fa-2x"></i></div>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <a href="/" class="logo"><span class="logo-icon">M</span><span class="logo-text">Manga<span class="logo-accent">Vault</span></span></a>
+      <p class="footer-text">Free manhua & manga reading platform.</p>
+    </div>
+  </footer>
+
+  <script src="/js/comic.js"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reader - MangaVault</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body class="reader-body">
+  <!-- READER TOOLBAR -->
+  <div class="reader-toolbar" id="readerToolbar">
+    <div class="reader-toolbar-inner">
+      <a href="#" class="back-btn" id="backToComic"><i class="fa fa-arrow-left"></i> Back</a>
+      <div class="reader-info">
+        <span id="readerComicTitle" class="reader-comic-title"></span>
+        <span id="readerChapterTitle" class="reader-chapter-title"></span>
+      </div>
+      <div class="reader-nav">
+        <a href="#" class="reader-nav-btn" id="prevChapterBtn" title="Previous Chapter"><i class="fa fa-chevron-left"></i></a>
+        <span id="chapterSelect" class="chapter-indicator"></span>
+        <a href="#" class="reader-nav-btn" id="nextChapterBtn" title="Next Chapter"><i class="fa fa-chevron-right"></i></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGES -->
+  <div class="reader-container" id="readerContainer">
+    <div class="reader-loading"><i class="fa fa-spinner fa-spin fa-3x"></i><p>Loading chapter...</p></div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="reader-bottom-nav" id="readerBottomNav" style="display:none">
+    <a href="#" class="reader-bottom-btn" id="prevChapterBtnBottom"><i class="fa fa-chevron-left"></i> Previous Chapter</a>
+    <a href="#" class="back-to-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;"><i class="fa fa-arrow-up"></i> Top</a>
+    <a href="#" class="reader-bottom-btn" id="nextChapterBtnBottom">Next Chapter <i class="fa fa-chevron-right"></i></a>
+  </div>
+
+  <script src="/js/reader.js"></script>
+</body>
+</html>

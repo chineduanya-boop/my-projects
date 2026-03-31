@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel - MangaVault</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">M</span>
+        <span class="logo-text">Manga<span class="logo-accent">Vault</span></span>
+      </a>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="/browse">Browse</a>
+      </nav>
+      <div class="header-right">
+        <span class="admin-badge"><i class="fa fa-shield-halved"></i> Admin Panel</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="admin-page">
+    <div class="admin-sidebar">
+      <h3 class="sidebar-title">Admin</h3>
+      <nav class="sidebar-nav">
+        <button class="sidebar-btn active" data-tab="comics"><i class="fa fa-list"></i> Manage Comics</button>
+        <button class="sidebar-btn" data-tab="add-comic"><i class="fa fa-plus-circle"></i> Add New Comic</button>
+        <button class="sidebar-btn" data-tab="add-chapter"><i class="fa fa-file-image"></i> Upload Chapter</button>
+      </nav>
+    </div>
+
+    <div class="admin-content">
+      <!-- MANAGE COMICS TAB -->
+      <div class="admin-tab active" id="tab-comics">
+        <div class="admin-tab-header">
+          <h2>All Comics</h2>
+          <button class="btn-primary" onclick="switchTab('add-comic')"><i class="fa fa-plus"></i> Add Comic</button>
+        </div>
+        <div id="adminComicsList" class="admin-comics-list">
+          <div class="row-loading"><i class="fa fa-spinner fa-spin"></i></div>
+        </div>
+      </div>
+
+      <!-- ADD COMIC TAB -->
+      <div class="admin-tab" id="tab-add-comic">
+        <div class="admin-tab-header">
+          <h2 id="addComicTitle">Add New Comic</h2>
+        </div>
+        <form id="addComicForm" class="admin-form" enctype="multipart/form-data">
+          <input type="hidden" id="editComicId" />
+          <div class="form-row">
+            <div class="form-group">
+              <label>Title *</label>
+              <input type="text" id="comicTitle" placeholder="Comic title" required />
+            </div>
+            <div class="form-group">
+              <label>Author</label>
+              <input type="text" id="comicAuthor" placeholder="Author name" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Artist</label>
+              <input type="text" id="comicArtist" placeholder="Artist name (if different)" />
+            </div>
+            <div class="form-group">
+              <label>Status</label>
+              <select id="comicStatus">
+                <option value="Ongoing">Ongoing</option>
+                <option value="Completed">Completed</option>
+                <option value="Hiatus">Hiatus</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="comicDescription" rows="4" placeholder="Comic description / synopsis..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Genres (select multiple)</label>
+            <div class="genre-checkboxes" id="genreCheckboxes">
+              <label><input type="checkbox" value="Action" /> Action</label>
+              <label><input type="checkbox" value="Adventure" /> Adventure</label>
+              <label><input type="checkbox" value="Comedy" /> Comedy</label>
+              <label><input type="checkbox" value="Drama" /> Drama</label>
+              <label><input type="checkbox" value="Fantasy" /> Fantasy</label>
+              <label><input type="checkbox" value="Horror" /> Horror</label>
+              <label><input type="checkbox" value="Isekai" /> Isekai</label>
+              <label><input type="checkbox" value="Manhwa" /> Manhwa</label>
+              <label><input type="checkbox" value="Manhua" /> Manhua</label>
+              <label><input type="checkbox" value="Manga" /> Manga</label>
+              <label><input type="checkbox" value="Martial Arts" /> Martial Arts</label>
+              <label><input type="checkbox" value="Mystery" /> Mystery</label>
+              <label><input type="checkbox" value="Romance" /> Romance</label>
+              <label><input type="checkbox" value="Sci-Fi" /> Sci-Fi</label>
+              <label><input type="checkbox" value="Slice of Life" /> Slice of Life</label>
+              <label><input type="checkbox" value="Supernatural" /> Supernatural</label>
+              <label><input type="checkbox" value="Thriller" /> Thriller</label>
+              <label><input type="checkbox" value="Webtoon" /> Webtoon</label>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Cover Image</label>
+              <div class="file-drop-zone" id="coverDropZone">
+                <i class="fa fa-image fa-2x"></i>
+                <p>Click or drag to upload cover image</p>
+                <input type="file" id="comicCover" accept="image/*" style="display:none" />
+              </div>
+              <div id="coverPreview" class="cover-preview" style="display:none">
+                <img id="coverPreviewImg" alt="Cover preview" />
+                <button type="button" class="remove-cover-btn" id="removeCoverBtn"><i class="fa fa-times"></i></button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Featured Comic</label>
+              <label class="toggle-label">
+                <input type="checkbox" id="comicFeatured" />
+                <span class="toggle-switch"></span>
+                Show in featured banner
+              </label>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" onclick="switchTab('comics')">Cancel</button>
+            <button type="submit" class="btn-primary" id="saveComicBtn"><i class="fa fa-save"></i> Save Comic</button>
+          </div>
+        </form>
+        <div id="addComicMsg" class="form-message" style="display:none"></div>
+      </div>
+
+      <!-- ADD CHAPTER TAB -->
+      <div class="admin-tab" id="tab-add-chapter">
+        <div class="admin-tab-header">
+          <h2>Upload Chapter</h2>
+        </div>
+        <form id="addChapterForm" class="admin-form" enctype="multipart/form-data">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Select Comic *</label>
+              <select id="chapterComicId" required>
+                <option value="">-- Select a comic --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Chapter Number *</label>
+              <input type="number" id="chapterNumber" placeholder="e.g. 1, 2, 2.5" step="0.1" min="0" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Chapter Title (optional)</label>
+            <input type="text" id="chapterTitle" placeholder="e.g. The Beginning" />
+          </div>
+          <div class="form-group">
+            <label>Upload Pages * <small>(images will be sorted by filename)</small></label>
+            <div class="file-drop-zone pages-drop-zone" id="pagesDropZone">
+              <i class="fa fa-images fa-2x"></i>
+              <p>Click or drag to upload page images</p>
+              <p><small>You can select multiple files at once</small></p>
+              <input type="file" id="chapterPages" accept="image/*" multiple style="display:none" />
+            </div>
+            <div id="pagesPreview" class="pages-preview"></div>
+            <p id="pageCount" class="page-count"></p>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" onclick="switchTab('comics')">Cancel</button>
+            <button type="submit" class="btn-primary" id="saveChapterBtn"><i class="fa fa-upload"></i> Upload Chapter</button>
+          </div>
+        </form>
+        <div id="addChapterMsg" class="form-message" style="display:none"></div>
+        <div id="uploadProgress" class="upload-progress" style="display:none">
+          <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+          <p id="progressText">Uploading...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/admin.js"></script>
+</body>
+</html>
