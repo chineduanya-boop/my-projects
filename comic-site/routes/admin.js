@@ -1,132 +1,156 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../database/db');
+const { pool } = require('../database/db');
 const multer = require('multer');
+const multerS3 = require('multer-s3');
+const { S3Client } = require('@aws-sdk/client-s3');
 const path = require('path');
-const fs = require('fs');
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.join(__dirname, '..', 'uploads', 'temp');
-    fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
+const s3 = new S3Client({
+  region: 'auto',
+  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
   },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + Math.round(Math.random() * 1e9) + path.extname(file.originalname));
-  }
 });
 
-const upload = multer({
-  storage,
-  limits: { fileSize: 30 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    if (/\.(jpg|jpeg|png|webp|gif)$/i.test(file.originalname)) cb(null, true);
-    else cb(new Error('Only image files allowed'));
-  }
+const fileFilter = (req, file, cb) => {
+  if (/\.(jpg|jpeg|png|webp|gif)$/i.test(file.originalname)) cb(null, true);
+  else cb(new Error('Only image files allowed'));
+};
+
+const uploadCover = multer({
+  storage: multerS3({
+    s3,
+    bucket: process.env.R2_BUCKET_NAME,
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    key: (req, file, cb) => cb(null, `covers/${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`),
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter,
 });
+
+const uploadPages = multer({
+  storage: multerS3({
+    s3,
+    bucket: process.env.R2_BUCKET_NAME,
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    key: (req, file, cb) => cb(null, `pages/${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`),
+  }),
+  limits: { fileSize: 30 * 1024 * 1024 },
+  fileFilter,
+});
+
+const publicUrl = (key) => `${process.env.R2_PUBLIC_URL}/${key}`;
 
 // Get all comics
-router.get('/comics', (req, res) => {
+router.get('/comics', async (req, res) => {
   try {
-    const comics = db.prepare(`
-      SELECT c.*, (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) as chapter_count
+    const { rows } = await pool.query(`
+      SELECT c.*, (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) AS chapter_count
       FROM comics c ORDER BY c.created_at DESC
-    `).all();
-    res.json(comics);
+    `);
+    res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Create comic
-router.post('/comics', upload.single('cover'), (req, res) => {
+router.post('/comics', uploadCover.single('cover'), async (req, res) => {
   try {
     const { title, author, artist, description, genres, status, featured } = req.body;
     if (!title) return res.status(400).json({ error: 'Title is required' });
 
-    let coverPath = '';
-    if (req.file) {
-      const dest = path.join(__dirname, '..', 'uploads', 'covers', req.file.filename);
-      fs.renameSync(req.file.path, dest);
-      coverPath = `/uploads/covers/${req.file.filename}`;
-    }
-
+    const coverImage = req.file ? publicUrl(req.file.key) : '';
     let parsedGenres = [];
-    try { parsedGenres = genres ? JSON.parse(genres) : []; } catch { parsedGenres = []; }
+    try { parsedGenres = genres ? JSON.parse(genres) : []; } catch {}
 
-    const result = db.prepare(`
+    const { rows } = await pool.query(`
       INSERT INTO comics (title, author, artist, description, cover_image, genres, status, featured)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(title, author || 'Unknown', artist || author || 'Unknown', description || '', coverPath, JSON.stringify(parsedGenres), status || 'Ongoing', featured ? 1 : 0);
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id
+    `, [title, author || 'Unknown', artist || author || 'Unknown', description || '', coverImage, JSON.stringify(parsedGenres), status || 'Ongoing', featured ? 1 : 0]);
 
-    res.json({ id: result.lastInsertRowid, message: 'Comic created' });
+    res.json({ id: rows[0].id, message: 'Comic created' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Update comic
-router.put('/comics/:id', upload.single('cover'), (req, res) => {
+router.put('/comics/:id', uploadCover.single('cover'), async (req, res) => {
   try {
-    const comic = db.prepare('SELECT * FROM comics WHERE id = ?').get(req.params.id);
+    const comicRes = await pool.query('SELECT * FROM comics WHERE id = $1', [req.params.id]);
+    const comic = comicRes.rows[0];
     if (!comic) return res.status(404).json({ error: 'Not found' });
-    const { title, author, artist, description, genres, status, featured } = req.body;
 
-    let coverPath = comic.cover_image;
-    if (req.file) {
-      const dest = path.join(__dirname, '..', 'uploads', 'covers', req.file.filename);
-      fs.renameSync(req.file.path, dest);
-      coverPath = `/uploads/covers/${req.file.filename}`;
-    }
+    const { title, author, artist, description, genres, status, featured } = req.body;
+    const coverImage = req.file ? publicUrl(req.file.key) : comic.cover_image;
 
     let parsedGenres = JSON.parse(comic.genres);
     try { if (genres) parsedGenres = JSON.parse(genres); } catch {}
 
-    db.prepare(`UPDATE comics SET title=?,author=?,artist=?,description=?,cover_image=?,genres=?,status=?,featured=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-      .run(title || comic.title, author || comic.author, artist || comic.artist, description !== undefined ? description : comic.description, coverPath, JSON.stringify(parsedGenres), status || comic.status, featured !== undefined ? (featured ? 1 : 0) : comic.featured, req.params.id);
+    await pool.query(`
+      UPDATE comics SET title=$1,author=$2,artist=$3,description=$4,cover_image=$5,genres=$6,status=$7,featured=$8,updated_at=CURRENT_TIMESTAMP
+      WHERE id=$9
+    `, [title || comic.title, author || comic.author, artist || comic.artist, description !== undefined ? description : comic.description, coverImage, JSON.stringify(parsedGenres), status || comic.status, featured !== undefined ? (featured ? 1 : 0) : comic.featured, req.params.id]);
 
     res.json({ message: 'Comic updated' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Delete comic
-router.delete('/comics/:id', (req, res) => {
+router.delete('/comics/:id', async (req, res) => {
   try {
-    if (!db.prepare('SELECT id FROM comics WHERE id = ?').get(req.params.id)) return res.status(404).json({ error: 'Not found' });
-    db.prepare('DELETE FROM comics WHERE id = ?').run(req.params.id);
+    const { rows } = await pool.query('SELECT id FROM comics WHERE id = $1', [req.params.id]);
+    if (!rows[0]) return res.status(404).json({ error: 'Not found' });
+    await pool.query('DELETE FROM comics WHERE id = $1', [req.params.id]);
     res.json({ message: 'Deleted' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Add chapter
-router.post('/comics/:id/chapters', upload.array('pages', 300), (req, res) => {
+router.post('/comics/:id/chapters', uploadPages.array('pages', 300), async (req, res) => {
+  const client = await pool.connect();
   try {
     const { chapter_number, title } = req.body;
     if (!chapter_number) return res.status(400).json({ error: 'Chapter number required' });
     if (!req.files || !req.files.length) return res.status(400).json({ error: 'No pages uploaded' });
-    if (!db.prepare('SELECT id FROM comics WHERE id = ?').get(req.params.id)) return res.status(404).json({ error: 'Comic not found' });
 
-    const chapterDir = path.join(__dirname, '..', 'uploads', 'comics', `c${req.params.id}`, `ch${chapter_number}`);
-    fs.mkdirSync(chapterDir, { recursive: true });
+    const comicRes = await client.query('SELECT id FROM comics WHERE id = $1', [req.params.id]);
+    if (!comicRes.rows[0]) return res.status(404).json({ error: 'Comic not found' });
 
-    const chResult = db.prepare('INSERT INTO chapters (comic_id, chapter_number, title) VALUES (?,?,?)').run(req.params.id, parseFloat(chapter_number), title || `Chapter ${chapter_number}`);
-    const chapterId = chResult.lastInsertRowid;
+    await client.query('BEGIN');
 
-    const insertPage = db.prepare('INSERT INTO pages (chapter_id, page_number, image_path) VALUES (?,?,?)');
+    const chRes = await client.query(
+      'INSERT INTO chapters (comic_id, chapter_number, title) VALUES ($1,$2,$3) RETURNING id',
+      [req.params.id, parseFloat(chapter_number), title || `Chapter ${chapter_number}`]
+    );
+    const chapterId = chRes.rows[0].id;
+
     const sorted = [...req.files].sort((a, b) => a.originalname.localeCompare(b.originalname, undefined, { numeric: true }));
+    for (let i = 0; i < sorted.length; i++) {
+      await client.query(
+        'INSERT INTO pages (chapter_id, page_number, image_path) VALUES ($1,$2,$3)',
+        [chapterId, i + 1, publicUrl(sorted[i].key)]
+      );
+    }
 
-    sorted.forEach((file, i) => {
-      const dest = path.join(chapterDir, file.filename);
-      fs.renameSync(file.path, dest);
-      insertPage.run(chapterId, i + 1, `/uploads/comics/c${req.params.id}/ch${chapter_number}/${file.filename}`);
-    });
+    await client.query('UPDATE comics SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [req.params.id]);
+    await client.query('COMMIT');
 
-    db.prepare('UPDATE comics SET updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(req.params.id);
     res.json({ id: chapterId, message: `Chapter ${chapter_number} added with ${req.files.length} pages` });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
 });
 
 // Delete chapter
-router.delete('/chapters/:id', (req, res) => {
+router.delete('/chapters/:id', async (req, res) => {
   try {
-    if (!db.prepare('SELECT id FROM chapters WHERE id = ?').get(req.params.id)) return res.status(404).json({ error: 'Not found' });
-    db.prepare('DELETE FROM chapters WHERE id = ?').run(req.params.id);
+    const { rows } = await pool.query('SELECT id FROM chapters WHERE id = $1', [req.params.id]);
+    if (!rows[0]) return res.status(404).json({ error: 'Not found' });
+    await pool.query('DELETE FROM chapters WHERE id = $1', [req.params.id]);
     res.json({ message: 'Chapter deleted' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
