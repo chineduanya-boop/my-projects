@@ -42,6 +42,20 @@ const uploadPages = multer({
   fileFilter,
 });
 
+const uploadPdf = multer({
+  storage: multerS3({
+    s3,
+    bucket: process.env.R2_BUCKET_NAME,
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    key: (req, file, cb) => cb(null, `pdfs/${Date.now()}-${Math.round(Math.random() * 1e9)}.pdf`),
+  }),
+  limits: { fileSize: 500 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (/\.pdf$/i.test(file.originalname) || file.mimetype === 'application/pdf') cb(null, true);
+    else cb(new Error('Only PDF files allowed'));
+  },
+});
+
 const publicUrl = (key) => `${process.env.R2_PUBLIC_URL}/${key}`;
 
 // Get all comics
@@ -106,7 +120,7 @@ router.delete('/comics/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Add chapter
+// Add chapter — images
 router.post('/comics/:id/chapters', uploadPages.array('pages', 300), async (req, res) => {
   const client = await pool.connect();
   try {
@@ -142,6 +156,28 @@ router.post('/comics/:id/chapters', uploadPages.array('pages', 300), async (req,
     res.status(500).json({ error: err.message });
   } finally {
     client.release();
+  }
+});
+
+// Add chapter — PDF
+router.post('/comics/:id/chapters/pdf', uploadPdf.single('pdf'), async (req, res) => {
+  try {
+    const { chapter_number, title } = req.body;
+    if (!chapter_number) return res.status(400).json({ error: 'Chapter number required' });
+    if (!req.file) return res.status(400).json({ error: 'No PDF uploaded' });
+
+    const comicRes = await pool.query('SELECT id FROM comics WHERE id = $1', [req.params.id]);
+    if (!comicRes.rows[0]) return res.status(404).json({ error: 'Comic not found' });
+
+    const { rows } = await pool.query(
+      'INSERT INTO chapters (comic_id, chapter_number, title, pdf_url) VALUES ($1,$2,$3,$4) RETURNING id',
+      [req.params.id, parseFloat(chapter_number), title || `Chapter ${chapter_number}`, publicUrl(req.file.key)]
+    );
+
+    await pool.query('UPDATE comics SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [req.params.id]);
+    res.json({ id: rows[0].id, message: `Chapter ${chapter_number} added as PDF` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

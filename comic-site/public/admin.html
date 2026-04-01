@@ -157,15 +157,39 @@
             <input type="text" id="chapterTitle" placeholder="e.g. The Beginning" />
           </div>
           <div class="form-group">
-            <label>Upload Pages * <small>(images will be sorted by filename)</small></label>
+            <label>Upload Type</label>
+            <div class="upload-type-toggle">
+              <label class="upload-type-option">
+                <input type="radio" name="uploadType" value="images" checked /> Images (JPG/PNG/WebP)
+              </label>
+              <label class="upload-type-option">
+                <input type="radio" name="uploadType" value="pdf" /> PDF
+              </label>
+            </div>
+          </div>
+
+          <!-- Images upload -->
+          <div class="form-group" id="imagesUploadGroup">
+            <label>Upload Pages <small>(sorted by filename)</small></label>
             <div class="file-drop-zone pages-drop-zone" id="pagesDropZone">
               <i class="fa fa-images fa-2x"></i>
               <p>Click or drag to upload page images</p>
-              <p><small>You can select multiple files at once</small></p>
+              <p><small>Select multiple files at once</small></p>
               <input type="file" id="chapterPages" accept="image/*" multiple style="display:none" />
             </div>
             <div id="pagesPreview" class="pages-preview"></div>
             <p id="pageCount" class="page-count"></p>
+          </div>
+
+          <!-- PDF upload -->
+          <div class="form-group" id="pdfUploadGroup" style="display:none">
+            <label>Upload PDF</label>
+            <div class="file-drop-zone" id="pdfDropZone">
+              <i class="fa fa-file-pdf fa-2x"></i>
+              <p>Click or drag to upload PDF</p>
+              <input type="file" id="chapterPdf" accept=".pdf,application/pdf" style="display:none" />
+            </div>
+            <p id="pdfName" class="page-count"></p>
           </div>
           <div class="form-actions">
             <button type="button" class="btn-secondary" onclick="switchTab('comics')">Cancel</button>

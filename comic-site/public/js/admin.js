@@ -121,6 +121,15 @@ document.getElementById('removeCoverBtn').addEventListener('click', () => {
   document.getElementById('coverPreviewImg').src = '';
 });
 
+// Upload type toggle
+document.querySelectorAll('input[name="uploadType"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    const isPdf = radio.value === 'pdf';
+    document.getElementById('imagesUploadGroup').style.display = isPdf ? 'none' : 'block';
+    document.getElementById('pdfUploadGroup').style.display = isPdf ? 'block' : 'none';
+  });
+});
+
 // Pages drop zone
 const pagesDropZone = document.getElementById('pagesDropZone');
 const pagesInput = document.getElementById('chapterPages');
@@ -146,6 +155,23 @@ function handlePageFiles(files) {
     preview.appendChild(img);
   });
   document.getElementById('pageCount').textContent = `${files.length} page${files.length !== 1 ? 's' : ''} selected${files.length > 20 ? ' (showing first 20 previews)' : ''}`;
+}
+
+// PDF drop zone
+const pdfDropZone = document.getElementById('pdfDropZone');
+const pdfInput = document.getElementById('chapterPdf');
+pdfDropZone.addEventListener('click', () => pdfInput.click());
+pdfDropZone.addEventListener('dragover', e => { e.preventDefault(); pdfDropZone.classList.add('dragover'); });
+pdfDropZone.addEventListener('dragleave', () => pdfDropZone.classList.remove('dragover'));
+pdfDropZone.addEventListener('drop', e => {
+  e.preventDefault(); pdfDropZone.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) handlePdfFile(e.dataTransfer.files[0]);
+});
+pdfInput.addEventListener('change', () => { if (pdfInput.files[0]) handlePdfFile(pdfInput.files[0]); });
+
+function handlePdfFile(file) {
+  document.getElementById('pdfName').textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+  pdfDropZone.querySelector('p').textContent = file.name;
 }
 
 // Add/Edit comic form
@@ -198,8 +224,11 @@ document.getElementById('addChapterForm').addEventListener('submit', async e => 
   e.preventDefault();
   const comicId = document.getElementById('chapterComicId').value;
   const chapterNum = document.getElementById('chapterNumber').value;
+  const isPdf = document.querySelector('input[name="uploadType"]:checked').value === 'pdf';
+
   if (!comicId) { showMsg('addChapterMsg', 'Please select a comic.', 'error'); return; }
-  if (!pagesInput.files.length) { showMsg('addChapterMsg', 'Please upload at least one page.', 'error'); return; }
+  if (isPdf && !pdfInput.files[0]) { showMsg('addChapterMsg', 'Please select a PDF file.', 'error'); return; }
+  if (!isPdf && !pagesInput.files.length) { showMsg('addChapterMsg', 'Please upload at least one page.', 'error'); return; }
 
   const btn = document.getElementById('saveChapterBtn');
   btn.disabled = true;
@@ -208,13 +237,21 @@ document.getElementById('addChapterForm').addEventListener('submit', async e => 
   const formData = new FormData();
   formData.append('chapter_number', chapterNum);
   formData.append('title', document.getElementById('chapterTitle').value);
-  [...pagesInput.files].forEach(f => formData.append('pages', f));
+
+  if (isPdf) {
+    formData.append('pdf', pdfInput.files[0]);
+  } else {
+    [...pagesInput.files].forEach(f => formData.append('pages', f));
+  }
+
+  const endpoint = isPdf
+    ? `/api/admin/comics/${comicId}/chapters/pdf`
+    : `/api/admin/comics/${comicId}/chapters`;
 
   try {
-    // Use XHR for progress
     await new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', `/api/admin/comics/${comicId}/chapters`);
+      xhr.open('POST', endpoint);
       xhr.upload.onprogress = e => {
         if (e.lengthComputable) {
           const pct = Math.round(e.loaded / e.total * 100);
@@ -234,6 +271,9 @@ document.getElementById('addChapterForm').addEventListener('submit', async e => 
     document.getElementById('addChapterForm').reset();
     document.getElementById('pagesPreview').innerHTML = '';
     document.getElementById('pageCount').textContent = '';
+    document.getElementById('pdfName').textContent = '';
+    document.getElementById('imagesUploadGroup').style.display = 'block';
+    document.getElementById('pdfUploadGroup').style.display = 'none';
     loadAdminComics();
   } catch (err) {
     showMsg('addChapterMsg', err.error || 'Upload failed.', 'error');

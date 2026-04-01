@@ -41,6 +41,11 @@ async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_chapters_comic ON chapters(comic_id);
     CREATE INDEX IF NOT EXISTS idx_pages_chapter ON pages(chapter_id);
   `);
+
+  // Add pdf_url column if it doesn't exist (safe to run on existing DBs)
+  await pool.query(`
+    ALTER TABLE chapters ADD COLUMN IF NOT EXISTS pdf_url TEXT DEFAULT NULL;
+  `);
 }
 
 module.exports = { pool, initDb };
