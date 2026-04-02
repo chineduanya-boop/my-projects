@@ -15,6 +15,8 @@ app.use(express.urlencoded({ extended: true }));
 // Cache static assets (CSS, JS, images) for 7 days in browsers
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: '7d' }));
 
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+
 app.use('/api', require('./routes/comics'));
 app.use('/api/admin', require('./routes/admin'));
 
