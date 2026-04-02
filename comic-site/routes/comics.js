@@ -94,10 +94,13 @@ router.get('/comics/new-releases', async (req, res) => {
 
 router.get('/comics/:id', async (req, res) => {
   try {
+    const param = req.params.id;
+    const isNumeric = /^\d+$/.test(param);
+    const condition = isNumeric ? 'c.id = $1' : 'c.slug = $1';
     const { rows } = await pool.query(`
       SELECT c.*, (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) AS chapter_count
-      FROM comics c WHERE c.id = $1
-    `, [req.params.id]);
+      FROM comics c WHERE ${condition}
+    `, [param]);
     if (!rows[0]) return res.status(404).json({ error: 'Comic not found' });
     pool.query('UPDATE comics SET views = views + 1 WHERE id = $1', [req.params.id]).catch(() => {});
     res.set('Cache-Control', 'public, max-age=60');
