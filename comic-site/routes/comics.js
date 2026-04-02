@@ -2,6 +2,25 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../database/db');
 
+// Simple in-memory cache — avoids hammering the DB on every page load
+const cache = new Map();
+function getCache(key) {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) { cache.delete(key); return null; }
+  return entry.data;
+}
+function setCache(key, data, ttlMs) {
+  cache.set(key, { data, expiresAt: Date.now() + ttlMs });
+}
+// Call this whenever comics/chapters change so cached lists stay fresh
+function bustCache() {
+  cache.clear();
+}
+module.exports.bustCache = bustCache;
+
+const FIVE_MIN = 5 * 60 * 1000;
+
 router.get('/comics', async (req, res) => {
   try {
     const { genre, status, search, sort = 'updated', limit = 24, offset = 0 } = req.query;
@@ -20,32 +39,46 @@ router.get('/comics', async (req, res) => {
       pool.query(`SELECT c.*, (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) AS chapter_count FROM comics c ${where} ORDER BY ${orderBy} LIMIT $${p} OFFSET $${p+1}`, [...params, parseInt(limit), parseInt(offset)]),
       pool.query(`SELECT COUNT(*) AS n FROM comics c ${where}`, params),
     ]);
+    res.set('Cache-Control', 'public, max-age=60');
     res.json({ comics: comicsRes.rows, total: parseInt(countRes.rows[0].n) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.get('/comics/featured', async (req, res) => {
   try {
+    const cached = getCache('featured');
+    if (cached) { res.set('Cache-Control', 'public, max-age=300'); return res.json(cached); }
+
     const { rows } = await pool.query(`
       SELECT c.*, (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) AS chapter_count
       FROM comics c WHERE c.featured = 1 ORDER BY c.views DESC LIMIT 6
     `);
+    setCache('featured', rows, FIVE_MIN);
+    res.set('Cache-Control', 'public, max-age=300');
     res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.get('/comics/popular', async (req, res) => {
   try {
+    const cached = getCache('popular');
+    if (cached) { res.set('Cache-Control', 'public, max-age=300'); return res.json(cached); }
+
     const { rows } = await pool.query(`
       SELECT c.*, (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) AS chapter_count
       FROM comics c ORDER BY c.views DESC LIMIT 12
     `);
+    setCache('popular', rows, FIVE_MIN);
+    res.set('Cache-Control', 'public, max-age=300');
     res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.get('/comics/new-releases', async (req, res) => {
   try {
+    const cached = getCache('new-releases');
+    if (cached) { res.set('Cache-Control', 'public, max-age=300'); return res.json(cached); }
+
     const { rows } = await pool.query(`
       SELECT c.*, (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) AS chapter_count,
         (SELECT created_at FROM chapters WHERE comic_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_chapter_date
@@ -53,6 +86,8 @@ router.get('/comics/new-releases', async (req, res) => {
       WHERE (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) > 0
       ORDER BY last_chapter_date DESC LIMIT 12
     `);
+    setCache('new-releases', rows, FIVE_MIN);
+    res.set('Cache-Control', 'public, max-age=300');
     res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -65,6 +100,7 @@ router.get('/comics/:id', async (req, res) => {
     `, [req.params.id]);
     if (!rows[0]) return res.status(404).json({ error: 'Comic not found' });
     pool.query('UPDATE comics SET views = views + 1 WHERE id = $1', [req.params.id]).catch(() => {});
+    res.set('Cache-Control', 'public, max-age=60');
     res.json(rows[0]);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -75,6 +111,7 @@ router.get('/comics/:id/chapters', async (req, res) => {
       SELECT *, (SELECT COUNT(*) FROM pages WHERE chapter_id = chapters.id) AS page_count
       FROM chapters WHERE comic_id = $1 ORDER BY chapter_number ASC
     `, [req.params.id]);
+    res.set('Cache-Control', 'public, max-age=60');
     res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -92,16 +129,23 @@ router.get('/chapters/:id/pages', async (req, res) => {
       pool.query('SELECT id FROM chapters WHERE comic_id = $1 AND chapter_number < $2 ORDER BY chapter_number DESC LIMIT 1', [chapter.comic_id, chapter.chapter_number]),
       pool.query('SELECT id FROM chapters WHERE comic_id = $1 AND chapter_number > $2 ORDER BY chapter_number ASC LIMIT 1',  [chapter.comic_id, chapter.chapter_number]),
     ]);
+    res.set('Cache-Control', 'public, max-age=60');
     res.json({ chapter, pages: pagesRes.rows, prevChapter: prevRes.rows[0] || null, nextChapter: nextRes.rows[0] || null });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.get('/genres', async (req, res) => {
   try {
+    const cached = getCache('genres');
+    if (cached) { res.set('Cache-Control', 'public, max-age=300'); return res.json(cached); }
+
     const { rows } = await pool.query('SELECT genres FROM comics');
     const set = new Set();
     rows.forEach(r => { try { JSON.parse(r.genres).forEach(g => set.add(g)); } catch {} });
-    res.json([...set].sort());
+    const result = [...set].sort();
+    setCache('genres', result, FIVE_MIN);
+    res.set('Cache-Control', 'public, max-age=300');
+    res.json(result);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

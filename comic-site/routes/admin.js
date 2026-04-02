@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../database/db');
+const { bustCache } = require('./comics');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
 const { S3Client } = require('@aws-sdk/client-s3');
@@ -84,6 +85,7 @@ router.post('/comics', uploadCover.single('cover'), async (req, res) => {
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id
     `, [title, author || 'Unknown', artist || author || 'Unknown', description || '', coverImage, JSON.stringify(parsedGenres), status || 'Ongoing', featured ? 1 : 0]);
 
+    bustCache();
     res.json({ id: rows[0].id, message: 'Comic created' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -106,6 +108,7 @@ router.put('/comics/:id', uploadCover.single('cover'), async (req, res) => {
       WHERE id=$9
     `, [title || comic.title, author || comic.author, artist || comic.artist, description !== undefined ? description : comic.description, coverImage, JSON.stringify(parsedGenres), status || comic.status, featured !== undefined ? (featured ? 1 : 0) : comic.featured, req.params.id]);
 
+    bustCache();
     res.json({ message: 'Comic updated' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -116,6 +119,7 @@ router.delete('/comics/:id', async (req, res) => {
     const { rows } = await pool.query('SELECT id FROM comics WHERE id = $1', [req.params.id]);
     if (!rows[0]) return res.status(404).json({ error: 'Not found' });
     await pool.query('DELETE FROM comics WHERE id = $1', [req.params.id]);
+    bustCache();
     res.json({ message: 'Deleted' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -150,6 +154,7 @@ router.post('/comics/:id/chapters', uploadPages.array('pages', 300), async (req,
     await client.query('UPDATE comics SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [req.params.id]);
     await client.query('COMMIT');
 
+    bustCache();
     res.json({ id: chapterId, message: `Chapter ${chapter_number} added with ${req.files.length} pages` });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -175,6 +180,7 @@ router.post('/comics/:id/chapters/pdf', uploadPdf.single('pdf'), async (req, res
     );
 
     await pool.query('UPDATE comics SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [req.params.id]);
+    bustCache();
     res.json({ id: rows[0].id, message: `Chapter ${chapter_number} added as PDF` });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -187,6 +193,7 @@ router.delete('/chapters/:id', async (req, res) => {
     const { rows } = await pool.query('SELECT id FROM chapters WHERE id = $1', [req.params.id]);
     if (!rows[0]) return res.status(404).json({ error: 'Not found' });
     await pool.query('DELETE FROM chapters WHERE id = $1', [req.params.id]);
+    bustCache();
     res.json({ message: 'Chapter deleted' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

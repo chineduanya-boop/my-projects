@@ -2,15 +2,18 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const compression = require('compression');
 const { initDb } = require('./database/db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(compression());
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+// Cache static assets (CSS, JS, images) for 7 days in browsers
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: '7d' }));
 
 app.use('/api', require('./routes/comics'));
 app.use('/api/admin', require('./routes/admin'));
