@@ -662,17 +662,51 @@ input[type="checkbox"]:checked ~ .toggle-switch::after { transform: translateX(1
   .nav-links { display: none; }
   .nav-links.open { display: flex; flex-direction: column; position: fixed; top: var(--header-h); left: 0; right: 0; background: var(--bg2); border-bottom: 1px solid var(--border); padding: 16px; z-index: 199; }
   .hamburger { display: block; }
-  .search-input { width: 140px; }
-  .hero-title { font-size: 20px; }
-  .hero-cover { width: 100px; }
-  .comics-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+  .search-input { width: 120px; }
+
+  /* Hero — stack cover on top of info on portrait */
+  .hero { margin: 12px auto; padding: 0 12px; }
+  .hero-slide { min-height: unset; }
+  .hero-slide-inner { flex-direction: column; align-items: flex-start; gap: 14px; padding: 16px; }
+  .hero-cover { width: 110px; }
+  .hero-title { font-size: 18px; }
+  .hero-desc { -webkit-line-clamp: 2; font-size: 13px; }
+  .hero-actions { flex-wrap: wrap; gap: 8px; }
+  .btn-read, .btn-details { padding: 8px 16px; font-size: 13px; }
+
+  /* Grids */
+  .comics-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+  .comics-row .comic-card { flex: 0 0 140px; }
+
+  /* Sections */
+  .section { padding: 0 12px; margin-bottom: 28px; }
+  .section-title { font-size: 17px; }
+
+  /* Comic detail */
   .comic-detail-hero { flex-direction: column; }
-  .comic-detail-cover { width: 160px; }
+  .comic-detail-cover { width: 140px; }
+
+  /* Admin */
   .admin-page { flex-direction: column; }
   .admin-sidebar { width: 100%; }
   .sidebar-nav { flex-direction: row; flex-wrap: wrap; }
   .form-row { grid-template-columns: 1fr; }
+
+  /* Reader */
   .reader-toolbar-inner { gap: 8px; }
+  .reader-comic-title { display: none; }
+}
+
+@media (max-width: 480px) {
+  .hero-slide-inner { padding: 12px; gap: 12px; }
+  .hero-cover { width: 90px; }
+  .hero-title { font-size: 16px; }
+  .hero-actions { gap: 6px; }
+  .btn-read, .btn-details { padding: 7px 12px; font-size: 12px; }
+  .comics-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+  .comics-row .comic-card { flex: 0 0 120px; }
+  .search-input { width: 90px; }
+  .logo-text { font-size: 17px; }
 }
 
 .upload-type-toggle { display: flex; gap: 24px; margin-top: 4px; }
