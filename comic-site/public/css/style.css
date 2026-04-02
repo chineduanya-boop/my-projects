@@ -123,7 +123,7 @@ input, select, textarea { font: inherit; color: inherit; }
   max-width: 1300px; margin: 24px auto; padding: 0 20px;
   min-height: 280px; position: relative;
 }
-.hero-slider { display: flex; gap: 16px; overflow: hidden; }
+.hero-slider { display: flex; overflow: hidden; transition: transform 0.4s ease; }
 .hero-slide {
   flex-shrink: 0; width: 100%;
   border-radius: 12px; overflow: hidden;
@@ -664,15 +664,19 @@ input[type="checkbox"]:checked ~ .toggle-switch::after { transform: translateX(1
   .hamburger { display: block; }
   .search-input { width: 120px; }
 
-  /* Hero — stack cover on top of info on portrait */
+  /* Hero — side by side but compact on portrait */
   .hero { margin: 12px auto; padding: 0 12px; }
-  .hero-slide { min-height: unset; }
-  .hero-slide-inner { flex-direction: column; align-items: flex-start; gap: 14px; padding: 16px; }
-  .hero-cover { width: 110px; }
-  .hero-title { font-size: 18px; }
-  .hero-desc { -webkit-line-clamp: 2; font-size: 13px; }
+  .hero-slider { align-items: stretch; }
+  .hero-slide { min-height: 200px; }
+  .hero-slide-inner { gap: 14px; padding: 14px; align-items: flex-start; }
+  .hero-cover { width: 100px; flex-shrink: 0; }
+  .hero-info { min-width: 0; }
+  .hero-title { font-size: 16px; }
+  .hero-meta { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hero-desc { -webkit-line-clamp: 3; font-size: 12px; margin-bottom: 10px; }
   .hero-actions { flex-wrap: wrap; gap: 8px; }
-  .btn-read, .btn-details { padding: 8px 16px; font-size: 13px; }
+  .hero-genres { display: none; }
+  .btn-read, .btn-details { padding: 7px 14px; font-size: 12px; }
 
   /* Grids */
   .comics-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
