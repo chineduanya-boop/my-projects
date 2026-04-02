@@ -1,4 +1,5 @@
-const id = location.pathname.split('/').pop();
+// COMIC_ID is injected server-side for slug URLs; fall back to last path segment
+const id = window.COMIC_ID || location.pathname.split('/').pop();
 
 function formatDate(str) {
   if (!str) return '';

@@ -45,10 +45,32 @@ async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_pages_chapter ON pages(chapter_id);
   `);
 
-  // Add pdf_url column if it doesn't exist (safe to run on existing DBs)
-  await pool.query(`
-    ALTER TABLE chapters ADD COLUMN IF NOT EXISTS pdf_url TEXT DEFAULT NULL;
-  `);
+  // Add pdf_url column if it doesn't exist
+  await pool.query(`ALTER TABLE chapters ADD COLUMN IF NOT EXISTS pdf_url TEXT DEFAULT NULL;`);
+
+  // Add slug column if it doesn't exist
+  await pool.query(`ALTER TABLE comics ADD COLUMN IF NOT EXISTS slug TEXT;`);
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_comics_slug ON comics(slug);`);
+
+  // Auto-generate slugs for any comics that don't have one yet
+  const { rows } = await pool.query('SELECT id, title FROM comics WHERE slug IS NULL OR slug = \'\'');
+  for (const comic of rows) {
+    const slug = slugify(comic.title);
+    // Handle duplicates by appending the id if slug already taken
+    const existing = await pool.query('SELECT id FROM comics WHERE slug = $1', [slug]);
+    const finalSlug = existing.rows.length ? `${slug}-${comic.id}` : slug;
+    await pool.query('UPDATE comics SET slug = $1 WHERE id = $2', [finalSlug, comic.id]);
+  }
 }
 
-module.exports = { pool, initDb };
+function slugify(title) {
+  return title
+    .toLowerCase()
+    .replace(/'/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+module.exports.slugify = slugify;
+
+module.exports = { pool, initDb, slugify };

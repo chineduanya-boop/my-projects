@@ -15,8 +15,9 @@ function comicCard(c) {
     ? `<img src="${c.cover_image}" alt="${c.title}" loading="lazy" />`
     : `<div class="no-cover"><i class="fa fa-book-open"></i></div>`;
   const statusClass = { Ongoing: 'status-ongoing', Completed: 'status-completed', Hiatus: 'status-hiatus' }[c.status] || 'status-ongoing';
+  const url = c.slug ? `/${c.slug}` : `/comic/${c.id}`;
   return `
-    <a class="comic-card" href="/comic/${c.id}">
+    <a class="comic-card" href="${url}">
       <div class="comic-card-cover">
         ${cover}
         <span class="comic-status-badge ${statusClass}">${c.status}</span>

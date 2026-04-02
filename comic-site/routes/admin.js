@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { pool } = require('../database/db');
+const { pool, slugify } = require('../database/db');
 const { bustCache } = require('./comics');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
@@ -80,10 +80,15 @@ router.post('/comics', uploadCover.single('cover'), async (req, res) => {
     let parsedGenres = [];
     try { parsedGenres = genres ? JSON.parse(genres) : []; } catch {}
 
+    // Generate a unique slug from the title
+    let slug = slugify(title);
+    const existing = await pool.query('SELECT id FROM comics WHERE slug = $1', [slug]);
+    if (existing.rows.length) slug = `${slug}-${Date.now()}`;
+
     const { rows } = await pool.query(`
-      INSERT INTO comics (title, author, artist, description, cover_image, genres, status, featured)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id
-    `, [title, author || 'Unknown', artist || author || 'Unknown', description || '', coverImage, JSON.stringify(parsedGenres), status || 'Ongoing', featured ? 1 : 0]);
+      INSERT INTO comics (title, author, artist, description, cover_image, genres, status, featured, slug)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id
+    `, [title, author || 'Unknown', artist || author || 'Unknown', description || '', coverImage, JSON.stringify(parsedGenres), status || 'Ongoing', featured ? 1 : 0, slug]);
 
     bustCache();
     res.json({ id: rows[0].id, message: 'Comic created' });

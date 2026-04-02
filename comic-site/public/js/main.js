@@ -15,6 +15,9 @@ async function loadGenreDropdown() {
   } catch {}
 }
 
+// Comic URL helper
+function comicUrl(c) { return c.slug ? `/${c.slug}` : `/comic/${c.id}`; }
+
 // Comic card HTML
 function comicCard(c) {
   const cover = c.cover_image
@@ -22,7 +25,7 @@ function comicCard(c) {
     : `<div class="no-cover"><i class="fa fa-book-open"></i><span>No Cover</span></div>`;
   const statusClass = { Ongoing: 'status-ongoing', Completed: 'status-completed', Hiatus: 'status-hiatus' }[c.status] || 'status-ongoing';
   return `
-    <a class="comic-card" href="/comic/${c.id}">
+    <a class="comic-card" href="${comicUrl(c)}">
       <div class="comic-card-cover">
         ${cover}
         <span class="comic-status-badge ${statusClass}">${c.status}</span>
@@ -63,15 +66,15 @@ function renderHero(container, comics) {
       <div class="hero-slide">
         <div class="hero-slide-bg" style="background-image:url('${cover}')"></div>
         <div class="hero-slide-inner">
-          <div class="hero-cover"><a href="/comic/${c.id}"><img src="${cover || '/img/no-cover.png'}" alt="${c.title}" onerror="this.parentElement.innerHTML='<div style=background:var(--bg3);width:160px;aspect-ratio:2/3;border-radius:8px;display:flex;align-items:center;justify-content:center><i class=fa fa-book style=color:var(--text3);font-size:32px></i></div>'" /></a></div>
+          <div class="hero-cover"><a href="${comicUrl(c)}"><img src="${cover || '/img/no-cover.png'}" alt="${c.title}" onerror="this.parentElement.innerHTML='<div style=background:var(--bg3);width:160px;aspect-ratio:2/3;border-radius:8px;display:flex;align-items:center;justify-content:center><i class=fa fa-book style=color:var(--text3);font-size:32px></i></div>'" /></a></div>
           <div class="hero-info">
             <div class="hero-genres">${genres.slice(0,3).map(g => `<span class="hero-genre-tag">${g}</span>`).join('')}</div>
             <div class="hero-title">${c.title}</div>
             <div class="hero-meta"><i class="fa fa-user"></i> ${c.author || 'Unknown'} &bull; ${c.chapter_count || 0} Chapters &bull; <i class="fa fa-eye"></i> ${c.views || 0}</div>
             <div class="hero-desc">${c.description || 'No description available.'}</div>
             <div class="hero-actions">
-              <a href="/comic/${c.id}" class="btn-read"><i class="fa fa-book-open"></i> Read Now</a>
-              <a href="/comic/${c.id}" class="btn-details">Details</a>
+              <a href="${comicUrl(c)}" class="btn-read"><i class="fa fa-book-open"></i> Read Now</a>
+              <a href="${comicUrl(c)}" class="btn-details">Details</a>
             </div>
           </div>
         </div>
