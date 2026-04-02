@@ -116,6 +116,21 @@ input, select, textarea { font: inherit; color: inherit; }
 }
 .admin-link:hover { border-color: var(--orange); background: rgba(244,162,97,0.1); }
 
+.admin-badge {
+  padding: 6px 12px; background: rgba(230,57,70,0.15);
+  border: 1px solid rgba(230,57,70,0.3); border-radius: 24px;
+  font-size: 13px; font-weight: 500; color: var(--red);
+  display: flex; align-items: center; gap: 6px;
+}
+.logout-btn {
+  padding: 6px 14px; background: var(--bg3);
+  border: 1px solid var(--border); border-radius: 24px;
+  font-size: 13px; color: var(--text2);
+  display: flex; align-items: center; gap: 6px;
+  transition: all 0.2s; white-space: nowrap;
+}
+.logout-btn:hover { border-color: var(--red); color: var(--red); background: rgba(230,57,70,0.1); }
+
 .hamburger { display: none; padding: 6px; font-size: 18px; color: var(--text2); }
 
 /* ===== HERO SECTION ===== */

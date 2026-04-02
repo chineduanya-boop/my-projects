@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login - MangVault</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0d0d12; color: #f0f0f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    }
+    .login-box {
+      background: #13131c; border: 1px solid #2d2d44;
+      border-radius: 12px; padding: 40px 36px;
+      width: 100%; max-width: 380px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 32px; justify-content: center;
+    }
+    .logo-icon {
+      width: 38px; height: 38px; background: #e63946;
+      border-radius: 8px; display: flex; align-items: center;
+      justify-content: center; font-weight: 900; font-size: 20px;
+    }
+    .logo-text { font-size: 22px; font-weight: 700; }
+    .logo-accent { color: #e63946; }
+    h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; text-align: center; }
+    .subtitle { font-size: 13px; color: #6b7280; text-align: center; margin-bottom: 28px; }
+    label { display: block; font-size: 13px; color: #9ca3af; margin-bottom: 6px; }
+    input[type="password"] {
+      width: 100%; padding: 11px 14px;
+      background: #1a1a28; border: 1px solid #2d2d44;
+      border-radius: 8px; color: #f0f0f0; font-size: 15px;
+      outline: none; transition: border-color 0.2s;
+      margin-bottom: 20px;
+    }
+    input[type="password"]:focus { border-color: #e63946; }
+    button {
+      width: 100%; padding: 12px;
+      background: #e63946; color: #fff;
+      border: none; border-radius: 8px;
+      font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: background 0.2s;
+    }
+    button:hover { background: #c1121f; }
+    .error {
+      background: rgba(230,57,70,0.15); border: 1px solid rgba(230,57,70,0.4);
+      color: #e63946; border-radius: 8px;
+      padding: 10px 14px; font-size: 13px;
+      margin-bottom: 18px; display: none;
+    }
+    .back { display: block; text-align: center; margin-top: 20px; font-size: 13px; color: #6b7280; text-decoration: none; }
+    .back:hover { color: #f0f0f0; }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <div class="logo">
+      <span class="logo-icon">M</span>
+      <span class="logo-text">Mang<span class="logo-accent">Vault</span></span>
+    </div>
+    <h2>Admin Login</h2>
+    <p class="subtitle">Enter your admin password to continue</p>
+    <div class="error" id="errorMsg">Incorrect password. Please try again.</div>
+    <form method="POST" action="/admin/login">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" placeholder="Enter admin password" autofocus required />
+      <button type="submit">Sign In</button>
+    </form>
+    <a href="/" class="back">← Back to site</a>
+  </div>
+  <script>
+    const params = new URLSearchParams(location.search);
+    if (params.get('error')) document.getElementById('errorMsg').style.display = 'block';
+  </script>
+</body>
+</html>

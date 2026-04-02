@@ -4,20 +4,51 @@ const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 const compression = require('compression');
+const session = require('express-session');
 const { initDb, pool } = require('./database/db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const SITE_URL = 'https://mangvault.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'changeme';
 
 app.use(compression());
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'mv-secret-key-2024',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { maxAge: 7 * 24 * 60 * 60 * 1000, httpOnly: true, secure: false },
+}));
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h' }));
 
+// ── Auth middleware ───────────────────────────────────────────────────────────
+function requireAdmin(req, res, next) {
+  if (req.session && req.session.isAdmin) return next();
+  if (req.path.startsWith('/api')) return res.status(401).json({ error: 'Unauthorized' });
+  res.redirect('/admin/login');
+}
+
+// ── Login / Logout ────────────────────────────────────────────────────────────
+app.get('/admin/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+
+app.post('/admin/login', (req, res) => {
+  if (req.body.password === ADMIN_PASSWORD) {
+    req.session.isAdmin = true;
+    res.redirect('/admin');
+  } else {
+    res.redirect('/admin/login?error=1');
+  }
+});
+
+app.get('/admin/logout', (req, res) => {
+  req.session.destroy(() => res.redirect('/'));
+});
+
 app.use('/api', require('./routes/comics'));
-app.use('/api/admin', require('./routes/admin'));
+app.use('/api/admin', requireAdmin, require('./routes/admin'));
 
 // ── Sitemap ───────────────────────────────────────────────────────────────────
 app.get('/sitemap.xml', async (req, res) => {
@@ -114,7 +145,7 @@ app.get('/comic/:id', async (req, res) => {
 // ── Static routes ─────────────────────────────────────────────────────────────
 app.get('/',        (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/browse',  (req, res) => res.sendFile(path.join(__dirname, 'public', 'browse.html')));
-app.get('/admin',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/admin',   requireAdmin, (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/reader/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'reader.html')));
 
 // ── /:slug — comic pages by name ──────────────────────────────────────────────
