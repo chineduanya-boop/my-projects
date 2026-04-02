@@ -62,19 +62,24 @@ function renderHero(container, comics) {
     let genres = [];
     try { genres = JSON.parse(c.genres); } catch {}
     const cover = c.cover_image || '';
+    const url = comicUrl(c);
+    const nocover = `<div style="width:100%;aspect-ratio:2/3;background:var(--bg3);border-radius:8px;display:flex;align-items:center;justify-content:center"><i class="fa fa-book" style="color:var(--text3);font-size:32px"></i></div>`;
+    const coverImg = cover
+      ? `<img src="${cover}" alt="${c.title}" style="width:100%;aspect-ratio:2/3;object-fit:cover;display:block" onerror="this.outerHTML='${nocover.replace(/"/g,"'")}'" />`
+      : nocover;
     return `
       <div class="hero-slide">
         <div class="hero-slide-bg" style="background-image:url('${cover}')"></div>
         <div class="hero-slide-inner">
-          <div class="hero-cover"><a href="${comicUrl(c)}"><img src="${cover || '/img/no-cover.png'}" alt="${c.title}" onerror="this.parentElement.innerHTML='<div style=background:var(--bg3);width:160px;aspect-ratio:2/3;border-radius:8px;display:flex;align-items:center;justify-content:center><i class=fa fa-book style=color:var(--text3);font-size:32px></i></div>'" /></a></div>
+          <div class="hero-cover"><a href="${url}">${coverImg}</a></div>
           <div class="hero-info">
             <div class="hero-genres">${genres.slice(0,3).map(g => `<span class="hero-genre-tag">${g}</span>`).join('')}</div>
             <div class="hero-title">${c.title}</div>
             <div class="hero-meta"><i class="fa fa-user"></i> ${c.author || 'Unknown'} &bull; ${c.chapter_count || 0} Chapters &bull; <i class="fa fa-eye"></i> ${c.views || 0}</div>
             <div class="hero-desc">${c.description || 'No description available.'}</div>
             <div class="hero-actions">
-              <a href="${comicUrl(c)}" class="btn-read"><i class="fa fa-book-open"></i> Read Now</a>
-              <a href="${comicUrl(c)}" class="btn-details">Details</a>
+              <a href="${url}" class="btn-read"><i class="fa fa-book-open"></i> Read Now</a>
+              <a href="${url}" class="btn-details">Details</a>
             </div>
           </div>
         </div>
