@@ -110,10 +110,16 @@ router.get('/comics/:id', async (req, res) => {
 
 router.get('/comics/:id/chapters', async (req, res) => {
   try {
+    const param = req.params.id;
+    const isNumeric = /^\d+$/.test(param);
+    const comicId = isNumeric
+      ? param
+      : (await pool.query('SELECT id FROM comics WHERE slug = $1', [param])).rows[0]?.id;
+    if (!comicId) return res.status(404).json({ error: 'Comic not found' });
     const { rows } = await pool.query(`
       SELECT *, (SELECT COUNT(*) FROM pages WHERE chapter_id = chapters.id) AS page_count
       FROM chapters WHERE comic_id = $1 ORDER BY chapter_number ASC
-    `, [req.params.id]);
+    `, [comicId]);
     res.set('Cache-Control', 'public, max-age=60');
     res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
