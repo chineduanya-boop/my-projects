@@ -10,20 +10,6 @@
 </head>
 <body>
 
-  <!-- AGE GATE -->
-  <div class="age-gate" id="ageGate" style="display:none">
-    <div class="age-gate-box">
-      <div class="age-gate-icon">🔞</div>
-      <h2>Age Verification</h2>
-      <p>This comic contains adult content (18+). Please confirm your age to continue.</p>
-      <div class="age-gate-actions">
-        <button class="btn-age-confirm" id="ageConfirmBtn">Yes, I am 18 or older</button>
-        <a href="/" class="btn-age-exit">Go back to home</a>
-      </div>
-      <p class="age-gate-note">Your choice will be saved for future visits.</p>
-    </div>
-  </div>
-
   <header class="header">
     <div class="header-inner">
       <a href="/" class="logo">
@@ -39,6 +25,7 @@
           <input type="text" name="search" placeholder="Search comics..." class="search-input" />
           <button type="submit" class="search-btn"><i class="fa fa-search"></i></button>
         </form>
+        <button class="adult-toggle" id="adultToggle" title="Toggle adult content"><i class="fa fa-lock"></i> 18+</button>
         <a href="/admin" class="admin-link"><i class="fa fa-upload"></i><span> Upload</span></a>
       </div>
     </div>
@@ -55,6 +42,6 @@
     </div>
   </footer>
 
-  <script src="/js/comic.js?v=5"></script>
+  <script src="/js/comic.js?v=6"></script>
 </body>
 </html>

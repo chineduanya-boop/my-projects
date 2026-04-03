@@ -161,37 +161,66 @@ async function loadGenreTags() {
   } catch { el.innerHTML = '<p style="color:var(--text3)">Failed to load.</p>'; }
 }
 
-// Age gate
-function initAgeGate() {
-  const gate = document.getElementById('ageGate');
-  const lockedSection = document.getElementById('adultLockedSection');
+// Adult content toggle
+function isAdultEnabled() {
+  return localStorage.getItem('mv_show_adult') === '1';
+}
+
+function showAgeConfirm(onConfirm) {
+  const overlay = document.createElement('div');
+  overlay.className = 'age-confirm-overlay';
+  overlay.innerHTML = `
+    <div class="age-confirm-box">
+      <div class="age-confirm-icon">🔞</div>
+      <h3>Enable Adult Content?</h3>
+      <p>By enabling this, you confirm you are 18 years of age or older and consent to viewing adult-rated content.</p>
+      <div class="age-confirm-actions">
+        <button class="btn-age-confirm" id="ageConfirmYes">I am 18+ — Enable</button>
+        <button class="btn-age-cancel" id="ageConfirmNo">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('ageConfirmYes').addEventListener('click', () => { overlay.remove(); onConfirm(); });
+  document.getElementById('ageConfirmNo').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+function initAdultToggle() {
+  const btn = document.getElementById('adultToggle');
   const adultSection = document.getElementById('adultSection');
+  const lockedSection = document.getElementById('adultLockedSection');
 
-  if (localStorage.getItem('mv_age_verified') === '1') {
-    if (gate) gate.style.display = 'none';
-    if (lockedSection) lockedSection.style.display = 'none';
+  // Apply initial state
+  if (isAdultEnabled()) {
+    btn?.classList.add('active');
+    if (btn) { btn.innerHTML = '<i class="fa fa-lock-open"></i> 18+'; }
     if (adultSection) adultSection.style.display = 'block';
+    if (lockedSection) lockedSection.style.display = 'none';
     loadAdultRow();
-    return;
+  } else {
+    if (adultSection) adultSection.style.display = 'none';
+    if (lockedSection) lockedSection.style.display = 'block';
   }
 
-  // Not verified — show gate
-  if (gate) gate.style.display = 'flex';
-  if (lockedSection) lockedSection.style.display = 'block';
-  if (adultSection) adultSection.style.display = 'none';
+  // Toggle click
+  btn?.addEventListener('click', () => {
+    if (isAdultEnabled()) {
+      localStorage.removeItem('mv_show_adult');
+      location.reload();
+    } else {
+      showAgeConfirm(() => {
+        localStorage.setItem('mv_show_adult', '1');
+        location.reload();
+      });
+    }
+  });
 
-  function confirmAge() {
-    localStorage.setItem('mv_age_verified', '1');
-    if (gate) gate.style.display = 'none';
-    if (lockedSection) lockedSection.style.display = 'none';
-    if (adultSection) adultSection.style.display = 'block';
-    loadAdultRow();
-  }
-
-  document.getElementById('ageConfirmBtn')?.addEventListener('click', confirmAge);
+  // "Enable Adult Content" button in locked card
   document.getElementById('unlockAdultBtn')?.addEventListener('click', () => {
-    if (gate) gate.style.display = 'flex';
-    document.getElementById('ageConfirmBtn')?.addEventListener('click', confirmAge, { once: true });
+    showAgeConfirm(() => {
+      localStorage.setItem('mv_show_adult', '1');
+      location.reload();
+    });
   });
 }
 
@@ -215,5 +244,5 @@ loadGenreRow('Fantasy', 'fantasyRow');
 loadGenreRow('Drama', 'dramaRow');
 loadMostViewed();
 loadPopular();
-initAgeGate();
+initAdultToggle();
 loadGenreTags();

@@ -1,17 +1,39 @@
 // COMIC_ID is injected server-side for slug URLs; fall back to last path segment
 const id = window.COMIC_ID || location.pathname.split('/').pop();
 
-// Age gate for adult comics
-function initComicAgeGate(onVerified) {
-  if (!window.COMIC_IS_ADULT) { onVerified(); return; }
-  if (localStorage.getItem('mv_age_verified') === '1') { onVerified(); return; }
-  const gate = document.getElementById('ageGate');
-  if (gate) gate.style.display = 'flex';
-  document.getElementById('ageConfirmBtn')?.addEventListener('click', () => {
-    localStorage.setItem('mv_age_verified', '1');
-    gate.style.display = 'none';
-    onVerified();
+// Adult toggle setup (header button)
+function setupAdultToggle() {
+  const btn = document.getElementById('adultToggle');
+  if (!btn) return;
+  const enabled = localStorage.getItem('mv_show_adult') === '1';
+  if (enabled) { btn.classList.add('active'); btn.innerHTML = '<i class="fa fa-lock-open"></i> 18+'; }
+  btn.addEventListener('click', () => {
+    if (localStorage.getItem('mv_show_adult') === '1') {
+      localStorage.removeItem('mv_show_adult');
+      location.reload();
+    } else {
+      showAgeConfirm(() => { localStorage.setItem('mv_show_adult', '1'); location.reload(); });
+    }
   });
+}
+
+function showAgeConfirm(onConfirm) {
+  const overlay = document.createElement('div');
+  overlay.className = 'age-confirm-overlay';
+  overlay.innerHTML = `
+    <div class="age-confirm-box">
+      <div class="age-confirm-icon">🔞</div>
+      <h3>Enable Adult Content?</h3>
+      <p>By enabling this, you confirm you are 18 years of age or older and consent to viewing adult-rated content.</p>
+      <div class="age-confirm-actions">
+        <button class="btn-age-confirm" id="ageConfirmYes">I am 18+ — Enable</button>
+        <button class="btn-age-cancel" id="ageConfirmNo">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('ageConfirmYes').addEventListener('click', () => { overlay.remove(); onConfirm(); });
+  document.getElementById('ageConfirmNo').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
 function formatDate(str) {
@@ -20,7 +42,22 @@ function formatDate(str) {
 }
 
 async function loadComic() {
-  initComicAgeGate(startLoadComic);
+  // Block adult comics if toggle is off
+  if (window.COMIC_IS_ADULT && localStorage.getItem('mv_show_adult') !== '1') {
+    document.getElementById('comicDetailPage').innerHTML = `
+      <div class="adult-blocked">
+        <div class="adult-blocked-icon">🔞</div>
+        <h3>Adult Content</h3>
+        <p>This comic is rated 18+. Enable adult content to read it.</p>
+        <button class="btn-age-confirm" onclick="enableAndReload()">Enable Adult Content</button>
+      </div>`;
+    return;
+  }
+  startLoadComic();
+}
+
+function enableAndReload() {
+  showAgeConfirm(() => { localStorage.setItem('mv_show_adult', '1'); location.reload(); });
 }
 
 async function startLoadComic() {

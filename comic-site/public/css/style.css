@@ -247,6 +247,50 @@ input, select, textarea { font: inherit; color: inherit; }
   padding: 2px 8px; border-radius: 4px;
   letter-spacing: 0.5px;
 }
+
+/* ===== ADULT TOGGLE (header button) ===== */
+.adult-toggle {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 11px; border-radius: 20px;
+  border: 1px solid var(--border);
+  font-size: 12px; font-weight: 700; color: var(--text3);
+  cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  background: none;
+}
+.adult-toggle:hover { border-color: #c0392b; color: #c0392b; }
+.adult-toggle.active { background: #c0392b; color: #fff; border-color: #c0392b; }
+
+/* ===== ADULT CONFIRM MODAL (small popup) ===== */
+.age-confirm-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.75);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.age-confirm-box {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 36px 32px;
+  max-width: 400px; width: 100%;
+  text-align: center; box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+}
+.age-confirm-box .age-confirm-icon { font-size: 40px; margin-bottom: 14px; }
+.age-confirm-box h3 { font-size: 19px; font-weight: 700; margin-bottom: 10px; }
+.age-confirm-box p { color: var(--text2); margin-bottom: 24px; line-height: 1.5; font-size: 14px; }
+.age-confirm-actions { display: flex; flex-direction: column; gap: 10px; }
+.btn-age-confirm {
+  background: var(--red); color: #fff;
+  padding: 12px 24px; border-radius: var(--radius);
+  font-size: 15px; font-weight: 600; cursor: pointer;
+  border: none; transition: background 0.2s;
+}
+.btn-age-confirm:hover { background: var(--red-dark); }
+.btn-age-cancel {
+  color: var(--text3); font-size: 14px; padding: 10px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  cursor: pointer; transition: all 0.2s; background: none;
+}
+.btn-age-cancel:hover { color: var(--text); background: var(--bg3); }
+
+/* ===== ADULT LOCKED (section placeholder) ===== */
 .adult-locked-card {
   background: var(--bg2); border: 1px dashed var(--border);
   border-radius: var(--radius); padding: 40px;
@@ -254,38 +298,23 @@ input, select, textarea { font: inherit; color: inherit; }
   color: var(--text3); text-align: center;
 }
 .adult-locked-card p { font-size: 15px; }
-
-/* ===== AGE GATE ===== */
-.age-gate {
-  position: fixed; inset: 0; z-index: 9999;
-  background: rgba(0,0,0,0.96);
-  display: flex; align-items: center; justify-content: center;
-  padding: 20px;
-}
-.age-gate-box {
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 16px; padding: 48px 40px;
-  max-width: 460px; width: 100%;
-  text-align: center; box-shadow: 0 8px 40px rgba(0,0,0,0.6);
-}
-.age-gate-icon { font-size: 48px; margin-bottom: 16px; }
-.age-gate-box h2 { font-size: 22px; font-weight: 700; margin-bottom: 12px; }
-.age-gate-box > p { color: var(--text2); margin-bottom: 28px; line-height: 1.6; font-size: 15px; }
-.age-gate-actions { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
-.btn-age-confirm {
-  background: var(--red); color: #fff;
-  padding: 14px 24px; border-radius: var(--radius);
-  font-size: 16px; font-weight: 600; cursor: pointer;
-  border: none; transition: background 0.2s;
-}
-.btn-age-confirm:hover { background: var(--red-dark); }
-.btn-age-exit {
-  display: block; color: var(--text3); font-size: 14px; padding: 10px;
+.adult-locked-card .btn-unlock {
+  background: var(--bg3); color: var(--text2);
   border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 10px 20px; cursor: pointer; font-size: 14px;
   transition: all 0.2s;
 }
-.btn-age-exit:hover { color: var(--text); background: var(--bg3); }
-.age-gate-note { font-size: 12px; color: var(--text3); }
+.adult-locked-card .btn-unlock:hover { border-color: #c0392b; color: #c0392b; }
+
+/* ===== ADULT BLOCKED (comic page) ===== */
+.adult-blocked {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 60px 40px;
+  text-align: center; margin: 40px auto; max-width: 500px;
+}
+.adult-blocked .adult-blocked-icon { font-size: 48px; margin-bottom: 16px; }
+.adult-blocked h3 { font-size: 20px; font-weight: 700; margin-bottom: 10px; }
+.adult-blocked p { color: var(--text2); margin-bottom: 24px; line-height: 1.5; }
 
 /* ===== COMIC CARD ===== */
 .comic-card {
