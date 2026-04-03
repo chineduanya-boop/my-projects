@@ -166,7 +166,7 @@ function isAdultEnabled() {
   return localStorage.getItem('mv_show_adult') === '1';
 }
 
-function showAgeConfirm(onConfirm) {
+function showAgeConfirm(onConfirm, onCancel) {
   const overlay = document.createElement('div');
   overlay.className = 'age-confirm-overlay';
   overlay.innerHTML = `
@@ -181,29 +181,41 @@ function showAgeConfirm(onConfirm) {
     </div>`;
   document.body.appendChild(overlay);
   document.getElementById('ageConfirmYes').addEventListener('click', () => { overlay.remove(); onConfirm(); });
-  document.getElementById('ageConfirmNo').addEventListener('click', () => overlay.remove());
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.getElementById('ageConfirmNo').addEventListener('click', () => { overlay.remove(); if (onCancel) onCancel(); });
+  overlay.addEventListener('click', e => { if (e.target === overlay) { overlay.remove(); if (onCancel) onCancel(); } });
 }
 
 function initAdultToggle() {
-  const btn = document.getElementById('adultToggle');
+  const switchInput = document.getElementById('adultSwitchInput');
+  const headerBtn = document.getElementById('adultToggle');
   const adultSection = document.getElementById('adultSection');
-  const lockedSection = document.getElementById('adultLockedSection');
 
-  // Apply initial state
-  if (isAdultEnabled()) {
-    btn?.classList.add('active');
-    if (btn) { btn.innerHTML = '<i class="fa fa-lock-open"></i> 18+'; }
+  // Set initial state
+  const enabled = isAdultEnabled();
+  if (switchInput) switchInput.checked = enabled;
+  if (enabled) {
     if (adultSection) adultSection.style.display = 'block';
-    if (lockedSection) lockedSection.style.display = 'none';
+    if (headerBtn) { headerBtn.classList.add('active'); headerBtn.innerHTML = '<i class="fa fa-lock-open"></i> 18+'; }
     loadAdultRow();
-  } else {
-    if (adultSection) adultSection.style.display = 'none';
-    if (lockedSection) lockedSection.style.display = 'block';
   }
 
-  // Toggle click
-  btn?.addEventListener('click', () => {
+  // Checkbox switch change
+  switchInput?.addEventListener('change', () => {
+    if (switchInput.checked) {
+      showAgeConfirm(() => {
+        localStorage.setItem('mv_show_adult', '1');
+        location.reload();
+      }, () => {
+        switchInput.checked = false; // revert if cancelled
+      });
+    } else {
+      localStorage.removeItem('mv_show_adult');
+      location.reload();
+    }
+  });
+
+  // Header button (secondary)
+  headerBtn?.addEventListener('click', () => {
     if (isAdultEnabled()) {
       localStorage.removeItem('mv_show_adult');
       location.reload();
@@ -213,14 +225,6 @@ function initAdultToggle() {
         location.reload();
       });
     }
-  });
-
-  // "Enable Adult Content" button in locked card
-  document.getElementById('unlockAdultBtn')?.addEventListener('click', () => {
-    showAgeConfirm(() => {
-      localStorage.setItem('mv_show_adult', '1');
-      location.reload();
-    });
   });
 }
 

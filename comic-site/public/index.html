@@ -37,7 +37,7 @@
   }
   </script>
 
-  <link rel="stylesheet" href="/css/style.css?v=7" />
+  <link rel="stylesheet" href="/css/style.css?v=8" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
 <body>
@@ -154,26 +154,32 @@
     </div>
   </section>
 
-  <!-- ADULT (18+) — hidden until age verified -->
-  <section class="section" id="adultSection" style="display:none">
-    <div class="section-header">
-      <h2 class="section-title"><span class="accent-bar"></span><span class="adult-badge">18+</span> Adult Comics</h2>
-      <a href="/browse?adult=1" class="see-all">See All <i class="fa fa-arrow-right"></i></a>
+  <!-- ADULT CONTENT SECTION -->
+  <section class="section">
+    <!-- Toggle card — always visible -->
+    <div class="adult-toggle-card" id="adultToggleCard">
+      <div class="adult-toggle-card-left">
+        <span class="adult-badge">18+</span>
+        <div>
+          <div class="adult-toggle-card-title">Adult Content</div>
+          <div class="adult-toggle-card-desc">Turn on to access adult-rated comics</div>
+        </div>
+      </div>
+      <label class="adult-switch">
+        <input type="checkbox" id="adultSwitchInput" />
+        <span class="adult-switch-track"><span class="adult-switch-thumb"></span></span>
+      </label>
     </div>
-    <div class="comics-row" id="adultRow">
-      <div class="row-loading"><i class="fa fa-spinner fa-spin"></i></div>
-    </div>
-  </section>
 
-  <!-- ADULT LOCKED — shown when toggle is off -->
-  <section class="section" id="adultLockedSection">
-    <div class="section-header">
-      <h2 class="section-title"><span class="accent-bar"></span><span class="adult-badge">18+</span> Adult Comics</h2>
-    </div>
-    <div class="adult-locked-card">
-      <i class="fa fa-lock fa-2x"></i>
-      <p>Adult content is turned off</p>
-      <button class="btn-unlock" id="unlockAdultBtn">Enable Adult Content</button>
+    <!-- Comics row — shown when ON -->
+    <div id="adultSection" style="display:none">
+      <div class="section-header" style="margin-top:20px">
+        <h2 class="section-title"><span class="accent-bar"></span><span class="adult-badge">18+</span> Adult Comics</h2>
+        <a href="/browse?adult=1" class="see-all">See All <i class="fa fa-arrow-right"></i></a>
+      </div>
+      <div class="comics-row" id="adultRow">
+        <div class="row-loading"><i class="fa fa-spinner fa-spin"></i></div>
+      </div>
     </div>
   </section>
 
@@ -201,6 +207,6 @@
     </div>
   </footer>
 
-  <script src="/js/main.js?v=7"></script>
+  <script src="/js/main.js?v=8"></script>
 </body>
 </html>
