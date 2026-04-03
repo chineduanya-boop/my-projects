@@ -187,12 +187,9 @@ function showAgeConfirm(onConfirm, onCancel) {
 
 function initAdultToggle() {
   const btn = document.getElementById('adultSwitchBtn');
-  const desc = document.getElementById('adultToggleDesc');
   const adultSection = document.getElementById('adultSection');
-
   if (isAdultEnabled()) {
     if (btn) btn.classList.add('on');
-    if (desc) desc.textContent = 'Enabled — adult comics are visible';
     if (adultSection) adultSection.style.display = 'block';
     loadAdultRow();
   }

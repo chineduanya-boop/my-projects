@@ -37,7 +37,7 @@
   }
   </script>
 
-  <link rel="stylesheet" href="/css/style.css?v=9" />
+  <link rel="stylesheet" href="/css/style.css?v=10" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
 <body>
@@ -62,6 +62,7 @@
           <input type="text" name="search" placeholder="Search comics..." class="search-input" />
           <button type="submit" class="search-btn"><i class="fa fa-search"></i></button>
         </form>
+        <button class="adult-pill" id="adultSwitchBtn" onclick="handleAdultToggle()" title="Toggle adult content">18+</button>
         <a href="/admin" class="admin-link"><i class="fa fa-upload"></i><span> Upload</span></a>
         <button class="hamburger" id="hamburger"><i class="fa fa-bars"></i></button>
       </div>
@@ -75,20 +76,6 @@
       <p>Loading featured comics...</p>
     </div>
   </section>
-
-  <!-- ADULT CONTENT TOGGLE -->
-  <div class="adult-toggle-card" id="adultToggleCard">
-    <div class="adult-toggle-card-left">
-      <span class="adult-badge">18+</span>
-      <div>
-        <div class="adult-toggle-card-title">Adult Content</div>
-        <div class="adult-toggle-card-desc" id="adultToggleDesc">Disabled — turn on to access adult comics</div>
-      </div>
-    </div>
-    <button class="adult-switch-btn" id="adultSwitchBtn" onclick="handleAdultToggle()">
-      <span class="adult-switch-track"><span class="adult-switch-thumb"></span></span>
-    </button>
-  </div>
 
   <!-- NEW RELEASES -->
   <section class="section">
@@ -202,6 +189,6 @@
     </div>
   </footer>
 
-  <script src="/js/main.js?v=9"></script>
+  <script src="/js/main.js?v=10"></script>
 </body>
 </html>
