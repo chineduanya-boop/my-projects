@@ -5,10 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Comic - MangVault</title>
   <meta name="robots" content="index, follow" />
-  <link rel="stylesheet" href="/css/style.css?v=6" />
+  <link rel="stylesheet" href="/css/style.css?v=7" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
 <body>
+
+  <!-- AGE GATE -->
+  <div class="age-gate" id="ageGate" style="display:none">
+    <div class="age-gate-box">
+      <div class="age-gate-icon">🔞</div>
+      <h2>Age Verification</h2>
+      <p>This comic contains adult content (18+). Please confirm your age to continue.</p>
+      <div class="age-gate-actions">
+        <button class="btn-age-confirm" id="ageConfirmBtn">Yes, I am 18 or older</button>
+        <a href="/" class="btn-age-exit">Go back to home</a>
+      </div>
+      <p class="age-gate-note">Your choice will be saved for future visits.</p>
+    </div>
+  </div>
+
   <header class="header">
     <div class="header-inner">
       <a href="/" class="logo">

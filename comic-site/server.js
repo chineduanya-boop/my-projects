@@ -121,7 +121,7 @@ async function serveComicPage(comic, comicId, req, res) {
     "publisher": { "@type": "Organization", "name": "MangVault", "url": "${SITE_URL}" }${coverImage ? `,\n    "image": "${esc(coverImage)}"` : ''}
   }
   </script>
-  <script>window.COMIC_ID = ${comicId};</script>`;
+  <script>window.COMIC_ID = ${comicId}; window.COMIC_IS_ADULT = ${comic.is_adult ? 1 : 0};</script>`;
 
   const html = comicHtml
     .replace('<title>Comic - MangVault</title>', '')
@@ -135,7 +135,7 @@ app.get('/comic/:id', async (req, res) => {
   try {
     if (!/^\d+$/.test(req.params.id)) return res.redirect(301, '/');
     const { rows } = await pool.query(
-      'SELECT id, title, description, cover_image, author, genres, slug FROM comics WHERE id = $1',
+      'SELECT id, title, description, cover_image, author, genres, slug, is_adult FROM comics WHERE id = $1',
       [req.params.id]
     );
     if (!rows[0]) return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -158,7 +158,7 @@ app.get('/reader/:id', (req, res) => res.sendFile(path.join(__dirname, 'public',
 app.get('/:slug', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT id, title, description, cover_image, author, genres, slug FROM comics WHERE slug = $1',
+      'SELECT id, title, description, cover_image, author, genres, slug, is_adult FROM comics WHERE slug = $1',
       [req.params.slug]
     );
     if (!rows[0]) return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));

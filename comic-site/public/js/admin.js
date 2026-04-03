@@ -24,7 +24,7 @@ async function loadAdminComics() {
           ${c.cover_image ? `<img src="${c.cover_image}" alt="${c.title}" />` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3)"><i class="fa fa-book"></i></div>`}
         </div>
         <div class="admin-comic-info">
-          <div class="admin-comic-title">${c.title}</div>
+          <div class="admin-comic-title">${c.title}${c.is_adult ? ' <span style="background:#e06c9f;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;vertical-align:middle">18+</span>' : ''}</div>
           <div class="admin-comic-meta">
             <span><i class="fa fa-user"></i> ${c.author}</span>
             <span><i class="fa fa-book"></i> ${c.chapter_count} chapters</span>
@@ -69,6 +69,7 @@ async function editComic(id) {
     document.getElementById('comicDescription').value = comic.description;
     document.getElementById('comicStatus').value = comic.status;
     document.getElementById('comicFeatured').checked = !!comic.featured;
+    document.getElementById('comicAdult').checked = !!comic.is_adult;
 
     let genres = [];
     try { genres = JSON.parse(comic.genres); } catch {}
@@ -189,6 +190,7 @@ document.getElementById('addComicForm').addEventListener('submit', async e => {
   formData.append('description', document.getElementById('comicDescription').value);
   formData.append('status', document.getElementById('comicStatus').value);
   formData.append('featured', document.getElementById('comicFeatured').checked ? '1' : '0');
+  formData.append('is_adult', document.getElementById('comicAdult').checked ? '1' : '0');
   formData.append('genres', JSON.stringify(genres));
   if (coverInput.files[0]) formData.append('cover', coverInput.files[0]);
 
@@ -217,6 +219,7 @@ function resetComicForm() {
   coverDropZone.style.display = 'flex';
   document.getElementById('saveComicBtn').innerHTML = '<i class="fa fa-save"></i> Save Comic';
   document.querySelectorAll('#genreCheckboxes input').forEach(cb => cb.checked = false);
+  document.getElementById('comicAdult').checked = false;
 }
 
 // Add chapter form

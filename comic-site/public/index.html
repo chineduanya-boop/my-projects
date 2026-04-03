@@ -41,6 +41,21 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
 <body>
+
+  <!-- AGE GATE -->
+  <div class="age-gate" id="ageGate" style="display:none">
+    <div class="age-gate-box">
+      <div class="age-gate-icon">🔞</div>
+      <h2>Age Verification</h2>
+      <p>MangVault contains comics for adults (18+). Please confirm your age to continue.</p>
+      <div class="age-gate-actions">
+        <button class="btn-age-confirm" id="ageConfirmBtn">Yes, I am 18 or older</button>
+        <a href="https://www.google.com" class="btn-age-exit">No, take me out</a>
+      </div>
+      <p class="age-gate-note">Your choice will be saved for future visits.</p>
+    </div>
+  </div>
+
   <!-- HEADER -->
   <header class="header">
     <div class="header-inner">
@@ -149,6 +164,29 @@
     </div>
     <div class="comics-grid" id="popularGrid">
       <div class="row-loading"><i class="fa fa-spinner fa-spin"></i></div>
+    </div>
+  </section>
+
+  <!-- ADULT (18+) — hidden until age verified -->
+  <section class="section" id="adultSection" style="display:none">
+    <div class="section-header">
+      <h2 class="section-title"><span class="accent-bar"></span><span class="adult-badge">18+</span> Adult Comics</h2>
+      <a href="/browse?adult=1" class="see-all">See All <i class="fa fa-arrow-right"></i></a>
+    </div>
+    <div class="comics-row" id="adultRow">
+      <div class="row-loading"><i class="fa fa-spinner fa-spin"></i></div>
+    </div>
+  </section>
+
+  <!-- ADULT LOCKED — shown if age not verified -->
+  <section class="section" id="adultLockedSection">
+    <div class="section-header">
+      <h2 class="section-title"><span class="accent-bar"></span><span class="adult-badge">18+</span> Adult Comics</h2>
+    </div>
+    <div class="adult-locked-card">
+      <i class="fa fa-lock fa-2x"></i>
+      <p>Adult content is age-restricted</p>
+      <button class="btn-age-confirm" id="unlockAdultBtn">Verify Age to Unlock</button>
     </div>
   </section>
 

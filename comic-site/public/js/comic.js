@@ -1,12 +1,29 @@
 // COMIC_ID is injected server-side for slug URLs; fall back to last path segment
 const id = window.COMIC_ID || location.pathname.split('/').pop();
 
+// Age gate for adult comics
+function initComicAgeGate(onVerified) {
+  if (!window.COMIC_IS_ADULT) { onVerified(); return; }
+  if (localStorage.getItem('mv_age_verified') === '1') { onVerified(); return; }
+  const gate = document.getElementById('ageGate');
+  if (gate) gate.style.display = 'flex';
+  document.getElementById('ageConfirmBtn')?.addEventListener('click', () => {
+    localStorage.setItem('mv_age_verified', '1');
+    gate.style.display = 'none';
+    onVerified();
+  });
+}
+
 function formatDate(str) {
   if (!str) return '';
   return new Date(str).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 async function loadComic() {
+  initComicAgeGate(startLoadComic);
+}
+
+async function startLoadComic() {
   const page = document.getElementById('comicDetailPage');
   try {
     const [comic, chapters] = await Promise.all([

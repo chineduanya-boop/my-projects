@@ -161,6 +161,51 @@ async function loadGenreTags() {
   } catch { el.innerHTML = '<p style="color:var(--text3)">Failed to load.</p>'; }
 }
 
+// Age gate
+function initAgeGate() {
+  const gate = document.getElementById('ageGate');
+  const lockedSection = document.getElementById('adultLockedSection');
+  const adultSection = document.getElementById('adultSection');
+
+  if (localStorage.getItem('mv_age_verified') === '1') {
+    if (gate) gate.style.display = 'none';
+    if (lockedSection) lockedSection.style.display = 'none';
+    if (adultSection) adultSection.style.display = 'block';
+    loadAdultRow();
+    return;
+  }
+
+  // Not verified — show gate
+  if (gate) gate.style.display = 'flex';
+  if (lockedSection) lockedSection.style.display = 'block';
+  if (adultSection) adultSection.style.display = 'none';
+
+  function confirmAge() {
+    localStorage.setItem('mv_age_verified', '1');
+    if (gate) gate.style.display = 'none';
+    if (lockedSection) lockedSection.style.display = 'none';
+    if (adultSection) adultSection.style.display = 'block';
+    loadAdultRow();
+  }
+
+  document.getElementById('ageConfirmBtn')?.addEventListener('click', confirmAge);
+  document.getElementById('unlockAdultBtn')?.addEventListener('click', () => {
+    if (gate) gate.style.display = 'flex';
+    document.getElementById('ageConfirmBtn')?.addEventListener('click', confirmAge, { once: true });
+  });
+}
+
+async function loadAdultRow() {
+  const el = document.getElementById('adultRow');
+  if (!el) return;
+  try {
+    const data = await fetch('/api/comics?adult=1&limit=12&sort=views').then(r => r.json());
+    el.innerHTML = data.comics && data.comics.length
+      ? data.comics.map(comicCard).join('')
+      : '<p style="color:var(--text3);padding:20px">No adult comics yet.</p>';
+  } catch { el.innerHTML = '<p style="color:var(--text3);padding:20px">Failed to load.</p>'; }
+}
+
 loadGenreDropdown();
 loadHero();
 loadNewReleases();
@@ -170,4 +215,5 @@ loadGenreRow('Fantasy', 'fantasyRow');
 loadGenreRow('Drama', 'dramaRow');
 loadMostViewed();
 loadPopular();
+initAgeGate();
 loadGenreTags();

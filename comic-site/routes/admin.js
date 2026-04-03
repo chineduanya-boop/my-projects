@@ -73,7 +73,7 @@ router.get('/comics', async (req, res) => {
 // Create comic
 router.post('/comics', uploadCover.single('cover'), async (req, res) => {
   try {
-    const { title, author, artist, description, genres, status, featured } = req.body;
+    const { title, author, artist, description, genres, status, featured, is_adult } = req.body;
     if (!title) return res.status(400).json({ error: 'Title is required' });
 
     const coverImage = req.file ? publicUrl(req.file.key) : '';
@@ -86,9 +86,9 @@ router.post('/comics', uploadCover.single('cover'), async (req, res) => {
     if (existing.rows.length) slug = `${slug}-${Date.now()}`;
 
     const { rows } = await pool.query(`
-      INSERT INTO comics (title, author, artist, description, cover_image, genres, status, featured, slug)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id
-    `, [title, author || 'Unknown', artist || author || 'Unknown', description || '', coverImage, JSON.stringify(parsedGenres), status || 'Ongoing', featured ? 1 : 0, slug]);
+      INSERT INTO comics (title, author, artist, description, cover_image, genres, status, featured, is_adult, slug)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id
+    `, [title, author || 'Unknown', artist || author || 'Unknown', description || '', coverImage, JSON.stringify(parsedGenres), status || 'Ongoing', featured ? 1 : 0, is_adult ? 1 : 0, slug]);
 
     bustCache();
     res.json({ id: rows[0].id, message: 'Comic created' });
@@ -102,16 +102,16 @@ router.put('/comics/:id', uploadCover.single('cover'), async (req, res) => {
     const comic = comicRes.rows[0];
     if (!comic) return res.status(404).json({ error: 'Not found' });
 
-    const { title, author, artist, description, genres, status, featured } = req.body;
+    const { title, author, artist, description, genres, status, featured, is_adult } = req.body;
     const coverImage = req.file ? publicUrl(req.file.key) : comic.cover_image;
 
     let parsedGenres = JSON.parse(comic.genres);
     try { if (genres) parsedGenres = JSON.parse(genres); } catch {}
 
     await pool.query(`
-      UPDATE comics SET title=$1,author=$2,artist=$3,description=$4,cover_image=$5,genres=$6,status=$7,featured=$8,updated_at=CURRENT_TIMESTAMP
-      WHERE id=$9
-    `, [title || comic.title, author || comic.author, artist || comic.artist, description !== undefined ? description : comic.description, coverImage, JSON.stringify(parsedGenres), status || comic.status, featured !== undefined ? (featured ? 1 : 0) : comic.featured, req.params.id]);
+      UPDATE comics SET title=$1,author=$2,artist=$3,description=$4,cover_image=$5,genres=$6,status=$7,featured=$8,is_adult=$9,updated_at=CURRENT_TIMESTAMP
+      WHERE id=$10
+    `, [title || comic.title, author || comic.author, artist || comic.artist, description !== undefined ? description : comic.description, coverImage, JSON.stringify(parsedGenres), status || comic.status, featured !== undefined ? (featured ? 1 : 0) : comic.featured, is_adult !== undefined ? (is_adult ? 1 : 0) : (comic.is_adult || 0), req.params.id]);
 
     bustCache();
     res.json({ message: 'Comic updated' });

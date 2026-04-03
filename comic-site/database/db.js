@@ -48,6 +48,9 @@ async function initDb() {
   // Add pdf_url column if it doesn't exist
   await pool.query(`ALTER TABLE chapters ADD COLUMN IF NOT EXISTS pdf_url TEXT DEFAULT NULL;`);
 
+  // Add is_adult column if it doesn't exist
+  await pool.query(`ALTER TABLE comics ADD COLUMN IF NOT EXISTS is_adult INTEGER DEFAULT 0;`);
+
   // Add slug column if it doesn't exist
   await pool.query(`ALTER TABLE comics ADD COLUMN IF NOT EXISTS slug TEXT;`);
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_comics_slug ON comics(slug);`);
