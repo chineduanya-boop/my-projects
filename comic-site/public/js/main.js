@@ -41,16 +41,12 @@ function comicCard(c) {
 // Load hero / featured
 async function loadHero() {
   try {
-    const comics = await fetch('/api/comics/featured').then(r => r.json());
     const hero = document.getElementById('heroSection');
     if (!hero) return;
-    if (!comics.length) {
-      const all = await fetch('/api/comics/popular').then(r => r.json());
-      if (!all.length) { hero.innerHTML = `<div class="hero-empty"><i class="fa fa-book-open"></i><p>No comics yet. <a href="/admin" style="color:var(--red)">Upload some!</a></p></div>`; return; }
-      renderHero(hero, all.slice(0, 5));
-    } else {
-      renderHero(hero, comics);
-    }
+    const data = await fetch('/api/comics?sort=views&limit=6').then(r => r.json());
+    const comics = data.comics || [];
+    if (!comics.length) { hero.innerHTML = `<div class="hero-empty"><i class="fa fa-book-open"></i><p>No comics yet. <a href="/admin" style="color:var(--red)">Upload some!</a></p></div>`; return; }
+    renderHero(hero, comics);
   } catch (e) {
     document.getElementById('heroSection').innerHTML = `<div class="hero-empty"><i class="fa fa-exclamation-circle"></i><p>Failed to load.</p></div>`;
   }
