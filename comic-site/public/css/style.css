@@ -290,16 +290,29 @@ input, select, textarea { font: inherit; color: inherit; }
 }
 .btn-age-cancel:hover { color: var(--text); background: var(--bg3); }
 
-/* ===== ADULT PILL (header) ===== */
-.adult-pill {
-  font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
-  padding: 4px 10px; border-radius: 20px;
-  border: 1px solid var(--border); color: var(--text3);
-  background: none; cursor: pointer; transition: all 0.2s;
-  white-space: nowrap;
+/* ===== ADULT TOGGLE SWITCH (header) ===== */
+.adult-toggle-wrap {
+  display: flex; align-items: center; gap: 6px;
+  cursor: pointer; user-select: none; flex-shrink: 0;
 }
-.adult-pill:hover { border-color: #c0392b; color: #c0392b; }
-.adult-pill.on { background: #c0392b; color: #fff; border-color: #c0392b; }
+.adult-toggle-lbl {
+  font-size: 11px; font-weight: 700; color: var(--text3);
+  transition: color 0.2s;
+}
+.adult-toggle-track {
+  width: 36px; height: 20px; border-radius: 10px;
+  background: var(--bg3); border: 1px solid var(--border);
+  position: relative; transition: background 0.25s, border-color 0.25s;
+  flex-shrink: 0;
+}
+.adult-toggle-knob {
+  position: absolute; top: 3px; left: 3px;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--text3); transition: transform 0.25s, background 0.25s;
+}
+.adult-toggle-wrap.on .adult-toggle-lbl { color: #c0392b; }
+.adult-toggle-wrap.on .adult-toggle-track { background: #c0392b; border-color: #c0392b; }
+.adult-toggle-wrap.on .adult-toggle-knob { transform: translateX(16px); background: #fff; }
 
 /* ===== ADULT BLOCKED (comic page) ===== */
 .adult-blocked {

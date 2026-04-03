@@ -186,10 +186,10 @@ function showAgeConfirm(onConfirm, onCancel) {
 }
 
 function initAdultToggle() {
-  const btn = document.getElementById('adultSwitchBtn');
+  const wrap = document.getElementById('adultToggleWrap');
   const adultSection = document.getElementById('adultSection');
   if (isAdultEnabled()) {
-    if (btn) btn.classList.add('on');
+    if (wrap) wrap.classList.add('on');
     if (adultSection) adultSection.style.display = 'block';
     loadAdultRow();
   }
@@ -211,10 +211,13 @@ async function loadAdultRow() {
   const el = document.getElementById('adultRow');
   if (!el) return;
   try {
-    const data = await fetch('/api/comics?adult=1&limit=12&sort=views').then(r => r.json());
-    el.innerHTML = data.comics && data.comics.length
-      ? data.comics.map(comicCard).join('')
-      : '<p style="color:var(--text3);padding:20px">No adult comics yet.</p>';
+    const data = await fetch('/api/comics?adult=all&sort=views&limit=24').then(r => r.json());
+    const adults = (data.comics || []).filter(c => c.is_adult == 1);
+    if (adults.length) {
+      el.innerHTML = adults.map(comicCard).join('');
+    } else {
+      el.innerHTML = '<p style="color:var(--text3);padding:20px">No comics tagged as 18+ yet. Go to Admin → edit a comic → enable the 18+ checkbox.</p>';
+    }
   } catch { el.innerHTML = '<p style="color:var(--text3);padding:20px">Failed to load.</p>'; }
 }
 
