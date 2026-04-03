@@ -37,7 +37,7 @@
   }
   </script>
 
-  <link rel="stylesheet" href="/css/style.css?v=6" />
+  <link rel="stylesheet" href="/css/style.css?v=7" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
 <body>
@@ -86,11 +86,66 @@
     </div>
   </section>
 
+  <!-- ACTION -->
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title"><span class="accent-bar"></span><i class="fa fa-bolt cat-icon cat-action"></i> Action</h2>
+      <a href="/browse?genre=Action" class="see-all">See All <i class="fa fa-arrow-right"></i></a>
+    </div>
+    <div class="comics-row" id="actionRow">
+      <div class="row-loading"><i class="fa fa-spinner fa-spin"></i></div>
+    </div>
+  </section>
+
+  <!-- ROMANCE -->
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title"><span class="accent-bar"></span><i class="fa fa-heart cat-icon cat-romance"></i> Romance</h2>
+      <a href="/browse?genre=Romance" class="see-all">See All <i class="fa fa-arrow-right"></i></a>
+    </div>
+    <div class="comics-row" id="romanceRow">
+      <div class="row-loading"><i class="fa fa-spinner fa-spin"></i></div>
+    </div>
+  </section>
+
+  <!-- FANTASY -->
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title"><span class="accent-bar"></span><i class="fa fa-hat-wizard cat-icon cat-fantasy"></i> Fantasy</h2>
+      <a href="/browse?genre=Fantasy" class="see-all">See All <i class="fa fa-arrow-right"></i></a>
+    </div>
+    <div class="comics-row" id="fantasyRow">
+      <div class="row-loading"><i class="fa fa-spinner fa-spin"></i></div>
+    </div>
+  </section>
+
+  <!-- DRAMA -->
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title"><span class="accent-bar"></span><i class="fa fa-masks-theater cat-icon cat-drama"></i> Drama</h2>
+      <a href="/browse?genre=Drama" class="see-all">See All <i class="fa fa-arrow-right"></i></a>
+    </div>
+    <div class="comics-row" id="dramaRow">
+      <div class="row-loading"><i class="fa fa-spinner fa-spin"></i></div>
+    </div>
+  </section>
+
+  <!-- MOST VIEWED -->
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title"><span class="accent-bar"></span><i class="fa fa-fire cat-icon cat-fire"></i> Most Viewed</h2>
+      <a href="/browse?sort=views" class="see-all">See All <i class="fa fa-arrow-right"></i></a>
+    </div>
+    <div class="comics-row" id="mostViewedRow">
+      <div class="row-loading"><i class="fa fa-spinner fa-spin"></i></div>
+    </div>
+  </section>
+
   <!-- POPULAR -->
   <section class="section">
     <div class="section-header">
-      <h2 class="section-title"><span class="accent-bar"></span> Popular Comics</h2>
-      <a href="/browse?sort=views" class="see-all">See All <i class="fa fa-arrow-right"></i></a>
+      <h2 class="section-title"><span class="accent-bar"></span> All Comics</h2>
+      <a href="/browse" class="see-all">Browse All <i class="fa fa-arrow-right"></i></a>
     </div>
     <div class="comics-grid" id="popularGrid">
       <div class="row-loading"><i class="fa fa-spinner fa-spin"></i></div>
@@ -121,6 +176,6 @@
     </div>
   </footer>
 
-  <script src="/js/main.js?v=5"></script>
+  <script src="/js/main.js?v=6"></script>
 </body>
 </html>

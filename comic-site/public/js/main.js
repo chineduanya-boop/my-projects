@@ -129,6 +129,30 @@ async function loadPopular() {
   } catch { el.innerHTML = '<p style="color:var(--text3);padding:20px">Failed to load.</p>'; }
 }
 
+// Load a genre category row
+async function loadGenreRow(genre, elementId) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  try {
+    const data = await fetch(`/api/comics?genre=${encodeURIComponent(genre)}&limit=12&sort=views`).then(r => r.json());
+    el.innerHTML = data.comics && data.comics.length
+      ? data.comics.map(comicCard).join('')
+      : `<p style="color:var(--text3);padding:20px">No ${genre} comics yet.</p>`;
+  } catch { el.innerHTML = '<p style="color:var(--text3);padding:20px">Failed to load.</p>'; }
+}
+
+// Load most viewed row
+async function loadMostViewed() {
+  const el = document.getElementById('mostViewedRow');
+  if (!el) return;
+  try {
+    const data = await fetch('/api/comics?sort=views&limit=12').then(r => r.json());
+    el.innerHTML = data.comics && data.comics.length
+      ? data.comics.map(comicCard).join('')
+      : '<p style="color:var(--text3);padding:20px">No comics yet.</p>';
+  } catch { el.innerHTML = '<p style="color:var(--text3);padding:20px">Failed to load.</p>'; }
+}
+
 // Load genre tags
 async function loadGenreTags() {
   const el = document.getElementById('genreTags');
@@ -144,5 +168,10 @@ async function loadGenreTags() {
 loadGenreDropdown();
 loadHero();
 loadNewReleases();
+loadGenreRow('Action', 'actionRow');
+loadGenreRow('Romance', 'romanceRow');
+loadGenreRow('Fantasy', 'fantasyRow');
+loadGenreRow('Drama', 'dramaRow');
+loadMostViewed();
 loadPopular();
 loadGenreTags();

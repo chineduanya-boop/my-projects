@@ -232,6 +232,14 @@ input, select, textarea { font: inherit; color: inherit; }
 }
 .see-all:hover { color: var(--red); background: var(--bg3); }
 
+/* ===== CATEGORY ICONS ===== */
+.cat-icon { font-size: 16px; }
+.cat-action  { color: #f4a261; }
+.cat-romance { color: #e06c9f; }
+.cat-fantasy { color: #9d7ce8; }
+.cat-drama   { color: #4ecdc4; }
+.cat-fire    { color: #f4a261; }
+
 /* ===== COMIC CARD ===== */
 .comic-card {
   background: var(--card); border-radius: var(--radius);
