@@ -37,7 +37,7 @@
   }
   </script>
 
-  <link rel="stylesheet" href="/css/style.css?v=8" />
+  <link rel="stylesheet" href="/css/style.css?v=9" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
 <body>
@@ -62,7 +62,6 @@
           <input type="text" name="search" placeholder="Search comics..." class="search-input" />
           <button type="submit" class="search-btn"><i class="fa fa-search"></i></button>
         </form>
-        <button class="adult-toggle" id="adultToggle" title="Toggle adult content"><i class="fa fa-lock"></i> 18+</button>
         <a href="/admin" class="admin-link"><i class="fa fa-upload"></i><span> Upload</span></a>
         <button class="hamburger" id="hamburger"><i class="fa fa-bars"></i></button>
       </div>
@@ -76,6 +75,20 @@
       <p>Loading featured comics...</p>
     </div>
   </section>
+
+  <!-- ADULT CONTENT TOGGLE -->
+  <div class="adult-toggle-card" id="adultToggleCard">
+    <div class="adult-toggle-card-left">
+      <span class="adult-badge">18+</span>
+      <div>
+        <div class="adult-toggle-card-title">Adult Content</div>
+        <div class="adult-toggle-card-desc" id="adultToggleDesc">Disabled — turn on to access adult comics</div>
+      </div>
+    </div>
+    <button class="adult-switch-btn" id="adultSwitchBtn" onclick="handleAdultToggle()">
+      <span class="adult-switch-track"><span class="adult-switch-thumb"></span></span>
+    </button>
+  </div>
 
   <!-- NEW RELEASES -->
   <section class="section">
@@ -154,32 +167,14 @@
     </div>
   </section>
 
-  <!-- ADULT CONTENT SECTION -->
-  <section class="section">
-    <!-- Toggle card — always visible -->
-    <div class="adult-toggle-card" id="adultToggleCard">
-      <div class="adult-toggle-card-left">
-        <span class="adult-badge">18+</span>
-        <div>
-          <div class="adult-toggle-card-title">Adult Content</div>
-          <div class="adult-toggle-card-desc">Turn on to access adult-rated comics</div>
-        </div>
-      </div>
-      <label class="adult-switch">
-        <input type="checkbox" id="adultSwitchInput" />
-        <span class="adult-switch-track"><span class="adult-switch-thumb"></span></span>
-      </label>
+  <!-- ADULT COMICS ROW — shown when toggle is ON -->
+  <section class="section" id="adultSection" style="display:none">
+    <div class="section-header">
+      <h2 class="section-title"><span class="accent-bar"></span><span class="adult-badge">18+</span> Adult Comics</h2>
+      <a href="/browse" class="see-all">See All <i class="fa fa-arrow-right"></i></a>
     </div>
-
-    <!-- Comics row — shown when ON -->
-    <div id="adultSection" style="display:none">
-      <div class="section-header" style="margin-top:20px">
-        <h2 class="section-title"><span class="accent-bar"></span><span class="adult-badge">18+</span> Adult Comics</h2>
-        <a href="/browse?adult=1" class="see-all">See All <i class="fa fa-arrow-right"></i></a>
-      </div>
-      <div class="comics-row" id="adultRow">
-        <div class="row-loading"><i class="fa fa-spinner fa-spin"></i></div>
-      </div>
+    <div class="comics-row" id="adultRow">
+      <div class="row-loading"><i class="fa fa-spinner fa-spin"></i></div>
     </div>
   </section>
 
@@ -207,6 +202,6 @@
     </div>
   </footer>
 
-  <script src="/js/main.js?v=8"></script>
+  <script src="/js/main.js?v=9"></script>
 </body>
 </html>

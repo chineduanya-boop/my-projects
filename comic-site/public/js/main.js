@@ -186,46 +186,28 @@ function showAgeConfirm(onConfirm, onCancel) {
 }
 
 function initAdultToggle() {
-  const switchInput = document.getElementById('adultSwitchInput');
-  const headerBtn = document.getElementById('adultToggle');
+  const btn = document.getElementById('adultSwitchBtn');
+  const desc = document.getElementById('adultToggleDesc');
   const adultSection = document.getElementById('adultSection');
 
-  // Set initial state
-  const enabled = isAdultEnabled();
-  if (switchInput) switchInput.checked = enabled;
-  if (enabled) {
+  if (isAdultEnabled()) {
+    if (btn) btn.classList.add('on');
+    if (desc) desc.textContent = 'Enabled — adult comics are visible';
     if (adultSection) adultSection.style.display = 'block';
-    if (headerBtn) { headerBtn.classList.add('active'); headerBtn.innerHTML = '<i class="fa fa-lock-open"></i> 18+'; }
     loadAdultRow();
   }
+}
 
-  // Checkbox switch change
-  switchInput?.addEventListener('change', () => {
-    if (switchInput.checked) {
-      showAgeConfirm(() => {
-        localStorage.setItem('mv_show_adult', '1');
-        location.reload();
-      }, () => {
-        switchInput.checked = false; // revert if cancelled
-      });
-    } else {
-      localStorage.removeItem('mv_show_adult');
+function handleAdultToggle() {
+  if (isAdultEnabled()) {
+    localStorage.removeItem('mv_show_adult');
+    location.reload();
+  } else {
+    showAgeConfirm(() => {
+      localStorage.setItem('mv_show_adult', '1');
       location.reload();
-    }
-  });
-
-  // Header button (secondary)
-  headerBtn?.addEventListener('click', () => {
-    if (isAdultEnabled()) {
-      localStorage.removeItem('mv_show_adult');
-      location.reload();
-    } else {
-      showAgeConfirm(() => {
-        localStorage.setItem('mv_show_adult', '1');
-        location.reload();
-      });
-    }
-  });
+    });
+  }
 }
 
 async function loadAdultRow() {
