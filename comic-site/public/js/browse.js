@@ -64,8 +64,7 @@ async function loadComics(reset = false) {
   const sort = document.getElementById('sortFilter').value;
   const search = document.getElementById('searchInput').value;
 
-  const adultParam = localStorage.getItem('mv_show_adult') === '1' ? '&adult=all' : '';
-  const url = `/api/comics?limit=${limit}&offset=${currentOffset}${genre ? `&genre=${encodeURIComponent(genre)}` : ''}${status ? `&status=${encodeURIComponent(status)}` : ''}${sort ? `&sort=${sort}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}${adultParam}`;
+  const url = `/api/comics?limit=${limit}&offset=${currentOffset}&adult=all${genre ? `&genre=${encodeURIComponent(genre)}` : ''}${status ? `&status=${encodeURIComponent(status)}` : ''}${sort ? `&sort=${sort}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}`;
 
   try {
     const data = await fetch(url).then(r => r.json());
@@ -114,27 +113,6 @@ document.getElementById('searchForm').addEventListener('submit', e => {
 
 document.getElementById('loadMoreBtn').addEventListener('click', () => loadComics(false));
 
-// Adult toggle
-(function() {
-  const btn = document.getElementById('adultToggle');
-  if (!btn) return;
-  const enabled = localStorage.getItem('mv_show_adult') === '1';
-  if (enabled) { btn.classList.add('active'); btn.innerHTML = '<i class="fa fa-lock-open"></i> 18+'; }
-  btn.addEventListener('click', () => {
-    if (localStorage.getItem('mv_show_adult') === '1') {
-      localStorage.removeItem('mv_show_adult');
-      location.reload();
-    } else {
-      const overlay = document.createElement('div');
-      overlay.className = 'age-confirm-overlay';
-      overlay.innerHTML = `<div class="age-confirm-box"><div class="age-confirm-icon">🔞</div><h3>Enable Adult Content?</h3><p>By enabling this, you confirm you are 18 years of age or older.</p><div class="age-confirm-actions"><button class="btn-age-confirm" id="ageConfirmYes">I am 18+ — Enable</button><button class="btn-age-cancel" id="ageConfirmNo">Cancel</button></div></div>`;
-      document.body.appendChild(overlay);
-      document.getElementById('ageConfirmYes').addEventListener('click', () => { overlay.remove(); localStorage.setItem('mv_show_adult', '1'); location.reload(); });
-      document.getElementById('ageConfirmNo').addEventListener('click', () => overlay.remove());
-      overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-    }
-  });
-})();
 
 loadGenreFilter();
 loadComics(true);

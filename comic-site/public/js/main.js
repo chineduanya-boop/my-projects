@@ -43,7 +43,7 @@ async function loadHero() {
   try {
     const hero = document.getElementById('heroSection');
     if (!hero) return;
-    const data = await fetch(`/api/comics?sort=views&limit=6${adultParam()}`).then(r => r.json());
+    const data = await fetch('/api/comics?sort=views&limit=6&adult=all').then(r => r.json());
     const comics = data.comics || [];
     if (!comics.length) { hero.innerHTML = `<div class="hero-empty"><i class="fa fa-book-open"></i><p>No comics yet. <a href="/admin" style="color:var(--red)">Upload some!</a></p></div>`; return; }
     renderHero(hero, comics);
@@ -110,7 +110,7 @@ async function loadNewReleases() {
   const el = document.getElementById('newReleasesRow');
   if (!el) return;
   try {
-    const comics = await fetch(`/api/comics/new-releases?${adultParam()}`).then(r => r.json());
+    const comics = await fetch('/api/comics/new-releases?adult=all').then(r => r.json());
     el.innerHTML = comics.length ? comics.map(comicCard).join('') : '<p style="color:var(--text3);padding:20px">No releases yet.</p>';
   } catch { el.innerHTML = '<p style="color:var(--text3);padding:20px">Failed to load.</p>'; }
 }
@@ -120,7 +120,7 @@ async function loadPopular() {
   const el = document.getElementById('popularGrid');
   if (!el) return;
   try {
-    const comics = await fetch(`/api/comics/popular?${adultParam()}`).then(r => r.json());
+    const comics = await fetch('/api/comics/popular?adult=all').then(r => r.json());
     el.innerHTML = comics.length ? comics.map(comicCard).join('') : '<p style="color:var(--text3);padding:20px">No comics yet.</p>';
   } catch { el.innerHTML = '<p style="color:var(--text3);padding:20px">Failed to load.</p>'; }
 }
@@ -130,7 +130,7 @@ async function loadGenreRow(genre, elementId) {
   const el = document.getElementById(elementId);
   if (!el) return;
   try {
-    const data = await fetch(`/api/comics?genre=${encodeURIComponent(genre)}&limit=12&sort=views${adultParam()}`).then(r => r.json());
+    const data = await fetch(`/api/comics?genre=${encodeURIComponent(genre)}&limit=12&sort=views&adult=all`).then(r => r.json());
     el.innerHTML = data.comics && data.comics.length
       ? data.comics.map(comicCard).join('')
       : `<p style="color:var(--text3);padding:20px">No ${genre} comics yet.</p>`;
@@ -142,7 +142,7 @@ async function loadMostViewed() {
   const el = document.getElementById('mostViewedRow');
   if (!el) return;
   try {
-    const data = await fetch(`/api/comics?sort=views&limit=12${adultParam()}`).then(r => r.json());
+    const data = await fetch('/api/comics?sort=views&limit=12&adult=all').then(r => r.json());
     el.innerHTML = data.comics && data.comics.length
       ? data.comics.map(comicCard).join('')
       : '<p style="color:var(--text3);padding:20px">No comics yet.</p>';
@@ -161,51 +161,6 @@ async function loadGenreTags() {
   } catch { el.innerHTML = '<p style="color:var(--text3)">Failed to load.</p>'; }
 }
 
-// Adult content toggle
-function isAdultEnabled() {
-  return localStorage.getItem('mv_show_adult') === '1';
-}
-function adultParam() {
-  return isAdultEnabled() ? '&adult=all' : '';
-}
-
-function showAgeConfirm(onConfirm, onCancel) {
-  const overlay = document.createElement('div');
-  overlay.className = 'age-confirm-overlay';
-  overlay.innerHTML = `
-    <div class="age-confirm-box">
-      <div class="age-confirm-icon">🔞</div>
-      <h3>Enable Adult Content?</h3>
-      <p>By enabling this, you confirm you are 18 years of age or older and consent to viewing adult-rated content.</p>
-      <div class="age-confirm-actions">
-        <button class="btn-age-confirm" id="ageConfirmYes">I am 18+ — Enable</button>
-        <button class="btn-age-cancel" id="ageConfirmNo">Cancel</button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-  document.getElementById('ageConfirmYes').addEventListener('click', () => { overlay.remove(); onConfirm(); });
-  document.getElementById('ageConfirmNo').addEventListener('click', () => { overlay.remove(); if (onCancel) onCancel(); });
-  overlay.addEventListener('click', e => { if (e.target === overlay) { overlay.remove(); if (onCancel) onCancel(); } });
-}
-
-function initAdultToggle() {
-  const wrap = document.getElementById('adultToggleWrap');
-  if (isAdultEnabled() && wrap) wrap.classList.add('on');
-}
-
-function handleAdultToggle() {
-  if (isAdultEnabled()) {
-    localStorage.removeItem('mv_show_adult');
-    location.reload();
-  } else {
-    showAgeConfirm(() => {
-      localStorage.setItem('mv_show_adult', '1');
-      location.reload();
-    });
-  }
-}
-
-
 loadGenreDropdown();
 loadHero();
 loadNewReleases();
@@ -215,5 +170,4 @@ loadGenreRow('Fantasy', 'fantasyRow');
 loadGenreRow('Drama', 'dramaRow');
 loadMostViewed();
 loadPopular();
-initAdultToggle();
 loadGenreTags();
