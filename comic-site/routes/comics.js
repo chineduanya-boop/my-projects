@@ -50,14 +50,17 @@ router.get('/comics', async (req, res) => {
 
 router.get('/comics/featured', async (req, res) => {
   try {
-    const cached = getCache('featured');
+    const includeAdult = req.query.adult === 'all';
+    const cacheKey = includeAdult ? 'featured-adult' : 'featured';
+    const cached = getCache(cacheKey);
     if (cached) { res.set('Cache-Control', 'public, max-age=300'); return res.json(cached); }
 
+    const adultFilter = includeAdult ? '' : 'AND (c.is_adult IS NULL OR c.is_adult = 0)';
     const { rows } = await pool.query(`
       SELECT c.*, (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) AS chapter_count
-      FROM comics c WHERE c.featured = 1 AND (c.is_adult IS NULL OR c.is_adult = 0) ORDER BY c.views DESC LIMIT 6
+      FROM comics c WHERE c.featured = 1 ${adultFilter} ORDER BY c.views DESC LIMIT 6
     `);
-    setCache('featured', rows, FIVE_MIN);
+    setCache(cacheKey, rows, FIVE_MIN);
     res.set('Cache-Control', 'public, max-age=300');
     res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -65,14 +68,17 @@ router.get('/comics/featured', async (req, res) => {
 
 router.get('/comics/popular', async (req, res) => {
   try {
-    const cached = getCache('popular');
+    const includeAdult = req.query.adult === 'all';
+    const cacheKey = includeAdult ? 'popular-adult' : 'popular';
+    const cached = getCache(cacheKey);
     if (cached) { res.set('Cache-Control', 'public, max-age=300'); return res.json(cached); }
 
+    const adultFilter = includeAdult ? '' : 'WHERE (c.is_adult IS NULL OR c.is_adult = 0)';
     const { rows } = await pool.query(`
       SELECT c.*, (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) AS chapter_count
-      FROM comics c WHERE (c.is_adult IS NULL OR c.is_adult = 0) ORDER BY c.views DESC LIMIT 12
+      FROM comics c ${adultFilter} ORDER BY c.views DESC LIMIT 12
     `);
-    setCache('popular', rows, FIVE_MIN);
+    setCache(cacheKey, rows, FIVE_MIN);
     res.set('Cache-Control', 'public, max-age=300');
     res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -80,18 +86,21 @@ router.get('/comics/popular', async (req, res) => {
 
 router.get('/comics/new-releases', async (req, res) => {
   try {
-    const cached = getCache('new-releases');
+    const includeAdult = req.query.adult === 'all';
+    const cacheKey = includeAdult ? 'new-releases-adult' : 'new-releases';
+    const cached = getCache(cacheKey);
     if (cached) { res.set('Cache-Control', 'public, max-age=300'); return res.json(cached); }
 
+    const adultFilter = includeAdult ? '' : 'AND (c.is_adult IS NULL OR c.is_adult = 0)';
     const { rows } = await pool.query(`
       SELECT c.*, (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) AS chapter_count,
         (SELECT created_at FROM chapters WHERE comic_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_chapter_date
       FROM comics c
       WHERE (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) > 0
-        AND (c.is_adult IS NULL OR c.is_adult = 0)
+        ${adultFilter}
       ORDER BY last_chapter_date DESC LIMIT 12
     `);
-    setCache('new-releases', rows, FIVE_MIN);
+    setCache(cacheKey, rows, FIVE_MIN);
     res.set('Cache-Control', 'public, max-age=300');
     res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }

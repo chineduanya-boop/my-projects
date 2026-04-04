@@ -43,7 +43,7 @@ async function loadHero() {
   try {
     const hero = document.getElementById('heroSection');
     if (!hero) return;
-    const data = await fetch('/api/comics?sort=views&limit=6').then(r => r.json());
+    const data = await fetch(`/api/comics?sort=views&limit=6${adultParam()}`).then(r => r.json());
     const comics = data.comics || [];
     if (!comics.length) { hero.innerHTML = `<div class="hero-empty"><i class="fa fa-book-open"></i><p>No comics yet. <a href="/admin" style="color:var(--red)">Upload some!</a></p></div>`; return; }
     renderHero(hero, comics);
@@ -110,7 +110,7 @@ async function loadNewReleases() {
   const el = document.getElementById('newReleasesRow');
   if (!el) return;
   try {
-    const comics = await fetch('/api/comics/new-releases').then(r => r.json());
+    const comics = await fetch(`/api/comics/new-releases?${adultParam()}`).then(r => r.json());
     el.innerHTML = comics.length ? comics.map(comicCard).join('') : '<p style="color:var(--text3);padding:20px">No releases yet.</p>';
   } catch { el.innerHTML = '<p style="color:var(--text3);padding:20px">Failed to load.</p>'; }
 }
@@ -120,7 +120,7 @@ async function loadPopular() {
   const el = document.getElementById('popularGrid');
   if (!el) return;
   try {
-    const comics = await fetch('/api/comics/popular').then(r => r.json());
+    const comics = await fetch(`/api/comics/popular?${adultParam()}`).then(r => r.json());
     el.innerHTML = comics.length ? comics.map(comicCard).join('') : '<p style="color:var(--text3);padding:20px">No comics yet.</p>';
   } catch { el.innerHTML = '<p style="color:var(--text3);padding:20px">Failed to load.</p>'; }
 }
@@ -130,7 +130,7 @@ async function loadGenreRow(genre, elementId) {
   const el = document.getElementById(elementId);
   if (!el) return;
   try {
-    const data = await fetch(`/api/comics?genre=${encodeURIComponent(genre)}&limit=12&sort=views`).then(r => r.json());
+    const data = await fetch(`/api/comics?genre=${encodeURIComponent(genre)}&limit=12&sort=views${adultParam()}`).then(r => r.json());
     el.innerHTML = data.comics && data.comics.length
       ? data.comics.map(comicCard).join('')
       : `<p style="color:var(--text3);padding:20px">No ${genre} comics yet.</p>`;
@@ -142,7 +142,7 @@ async function loadMostViewed() {
   const el = document.getElementById('mostViewedRow');
   if (!el) return;
   try {
-    const data = await fetch('/api/comics?sort=views&limit=12').then(r => r.json());
+    const data = await fetch(`/api/comics?sort=views&limit=12${adultParam()}`).then(r => r.json());
     el.innerHTML = data.comics && data.comics.length
       ? data.comics.map(comicCard).join('')
       : '<p style="color:var(--text3);padding:20px">No comics yet.</p>';
@@ -164,6 +164,9 @@ async function loadGenreTags() {
 // Adult content toggle
 function isAdultEnabled() {
   return localStorage.getItem('mv_show_adult') === '1';
+}
+function adultParam() {
+  return isAdultEnabled() ? '&adult=all' : '';
 }
 
 function showAgeConfirm(onConfirm, onCancel) {
@@ -187,12 +190,7 @@ function showAgeConfirm(onConfirm, onCancel) {
 
 function initAdultToggle() {
   const wrap = document.getElementById('adultToggleWrap');
-  const adultSection = document.getElementById('adultSection');
-  if (isAdultEnabled()) {
-    if (wrap) wrap.classList.add('on');
-    if (adultSection) adultSection.style.display = 'block';
-    loadAdultRow();
-  }
+  if (isAdultEnabled() && wrap) wrap.classList.add('on');
 }
 
 function handleAdultToggle() {
@@ -207,19 +205,6 @@ function handleAdultToggle() {
   }
 }
 
-async function loadAdultRow() {
-  const el = document.getElementById('adultRow');
-  if (!el) return;
-  try {
-    const data = await fetch('/api/comics?adult=all&sort=views&limit=24').then(r => r.json());
-    const adults = (data.comics || []).filter(c => c.is_adult == 1);
-    if (adults.length) {
-      el.innerHTML = adults.map(comicCard).join('');
-    } else {
-      el.innerHTML = '<p style="color:var(--text3);padding:20px">No comics tagged as 18+ yet. Go to Admin → edit a comic → enable the 18+ checkbox.</p>';
-    }
-  } catch { el.innerHTML = '<p style="color:var(--text3);padding:20px">Failed to load.</p>'; }
-}
 
 loadGenreDropdown();
 loadHero();
