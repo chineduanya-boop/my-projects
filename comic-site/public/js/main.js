@@ -16,7 +16,7 @@ async function loadGenreDropdown() {
 }
 
 // Comic URL helper
-function comicUrl(c) { return c.slug ? `/${c.slug}` : `/comic/${c.id}`; }
+function comicUrl(c) { return `/${c.slug || c.id}`; }
 
 // Comic card HTML
 function comicCard(c) {

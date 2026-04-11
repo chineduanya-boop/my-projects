@@ -57,11 +57,14 @@ app.get('/sitemap.xml', async (req, res) => {
     const urls = [
       `<url><loc>${SITE_URL}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
       `<url><loc>${SITE_URL}/browse</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`,
+      `<url><loc>${SITE_URL}/browse?sort=views</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`,
+      `<url><loc>${SITE_URL}/browse?sort=updated</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`,
       ...rows.map(c => {
         const loc = c.slug ? `${SITE_URL}/${c.slug}` : `${SITE_URL}/comic/${c.id}`;
         const date = c.updated_at ? new Date(c.updated_at).toISOString().split('T')[0] : '';
+        const safeTitle = c.title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
         const image = c.cover_image
-          ? `<image:image><image:loc>${c.cover_image}</image:loc><image:title>${c.title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</image:title></image:image>`
+          ? `<image:image><image:loc>${c.cover_image}</image:loc><image:title>${safeTitle}</image:title><image:caption>Read ${safeTitle} free online on MangVault</image:caption></image:image>`
           : '';
         return `<url><loc>${loc}</loc>${date ? `<lastmod>${date}</lastmod>` : ''}<changefreq>weekly</changefreq><priority>0.8</priority>${image}</url>`;
       }),
@@ -121,6 +124,21 @@ async function serveComicPage(comic, comicId, req, res) {
     "publisher": { "@type": "Organization", "name": "MangVault", "url": "${SITE_URL}" }${coverImage ? `,\n    "image": "${esc(coverImage)}"` : ''}
   }
   </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "${SITE_URL}/" },
+      { "@type": "ListItem", "position": 2, "name": "Browse", "item": "${SITE_URL}/browse" },
+      { "@type": "ListItem", "position": 3, "name": "${esc(comic.title)}", "item": "${canonicalUrl}" }
+    ]
+  }
+  </script>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#e53935" />
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
   <script>window.COMIC_ID = ${comicId}; window.COMIC_IS_ADULT = ${comic.is_adult ? 1 : 0};</script>`;
 
   const html = comicHtml

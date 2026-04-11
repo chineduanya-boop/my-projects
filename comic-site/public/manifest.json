@@ -1,0 +1,15 @@
+{
+  "name": "MangVault",
+  "short_name": "MangVault",
+  "description": "Read free manhua, manga and manhwa online. Hundreds of chapters, no subscription needed.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#e53935",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "categories": ["entertainment", "books"],
+  "lang": "en"
+}

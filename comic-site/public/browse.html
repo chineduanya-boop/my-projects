@@ -9,17 +9,49 @@
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://mangvault.com/browse" />
 
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="shortcut icon" href="/favicon.svg" />
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#e53935" />
+
+  <!-- Preconnect to CDN -->
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+
   <!-- Open Graph -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://mangvault.com/browse" />
   <meta property="og:title" content="Browse All Comics - Manhua, Manga & Manhwa | MangVault" />
   <meta property="og:description" content="Browse all free manhua, manga and manhwa on MangVault. Filter by genre and sort by popularity." />
   <meta property="og:site_name" content="MangVault" />
+  <meta property="og:image" content="https://mangvault.com/og-image.png" />
 
   <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Browse All Comics | MangVault" />
   <meta name="twitter:description" content="Browse all free manhua, manga and manhwa. Filter by genre, sort by popularity." />
+  <meta name="twitter:image" content="https://mangvault.com/og-image.png" />
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "Browse All Comics",
+    "description": "Browse all free manhua, manga and manhwa on MangVault. Filter by genre and sort by popularity.",
+    "url": "https://mangvault.com/browse",
+    "isPartOf": { "@type": "WebSite", "name": "MangVault", "url": "https://mangvault.com" },
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://mangvault.com/" },
+        { "@type": "ListItem", "position": 2, "name": "Browse", "item": "https://mangvault.com/browse" }
+      ]
+    }
+  }
+  </script>
 
   <link rel="stylesheet" href="/css/style.css?v=7" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
@@ -96,7 +128,18 @@
   <footer class="footer">
     <div class="footer-inner">
       <a href="/" class="logo"><span class="logo-icon">M</span><span class="logo-text">Manga<span class="logo-accent">Vault</span></span></a>
-      <p class="footer-text">Free manhua & manga reading platform.</p>
+      <p class="footer-text">Free manhua, manga &amp; manhwa reading platform. All comics are free to read online.</p>
+      <div class="footer-links">
+        <a href="/">Home</a>
+        <a href="/browse">Browse All</a>
+        <a href="/browse?sort=views">Most Popular</a>
+        <a href="/browse?sort=updated">New Releases</a>
+        <a href="/browse?genre=Action">Action</a>
+        <a href="/browse?genre=Romance">Romance</a>
+        <a href="/browse?genre=Fantasy">Fantasy</a>
+        <a href="/browse?genre=Drama">Drama</a>
+      </div>
+      <p class="footer-copy">&copy; 2025 MangVault. All rights reserved.</p>
     </div>
   </footer>
 

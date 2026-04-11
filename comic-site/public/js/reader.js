@@ -16,7 +16,7 @@ async function loadReader() {
     document.getElementById('readerComicTitle').textContent = comic.title;
     document.getElementById('readerChapterTitle').textContent = `Chapter ${chapter.chapter_number}${chapter.title ? ` - ${chapter.title}` : ''}`;
     document.getElementById('chapterSelect').textContent = `Ch. ${chapter.chapter_number}`;
-    document.getElementById('backToComic').href = `/comic/${chapter.comic_id}`;
+    document.getElementById('backToComic').href = comic.slug ? `/${comic.slug}` : `/comic/${chapter.comic_id}`;
 
     const prevBtn    = document.getElementById('prevChapterBtn');
     const nextBtn    = document.getElementById('nextChapterBtn');
