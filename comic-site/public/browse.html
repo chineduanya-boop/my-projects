@@ -84,8 +84,8 @@
 
   <div class="browse-page">
     <div class="browse-header">
-      <h1 id="browseTitle">All Comics</h1>
-      <p id="browseCount" class="browse-count"></p>
+      <h1 id="browseTitle"><!--SSR:browseTitle-->All Comics</h1>
+      <p id="browseCount" class="browse-count"><!--SSR:browseCount--></p>
     </div>
 
     <!-- FILTERS -->
@@ -117,7 +117,7 @@
     </div>
 
     <!-- GRID -->
-    <div class="comics-grid" id="browseGrid"></div>
+    <div class="comics-grid" id="browseGrid"><!--SSR:browseGrid--></div>
     <div id="loadMoreArea" class="load-more-area">
       <button id="loadMoreBtn" class="load-more-btn" style="display:none">Load More</button>
       <div id="browseLoading" class="row-loading"><i class="fa fa-spinner fa-spin"></i></div>

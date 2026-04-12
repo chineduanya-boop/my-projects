@@ -38,22 +38,41 @@ function comicCard(c) {
     </a>`;
 }
 
+// Wire up hero slider dots + auto-advance (works on SSR'd or JS-rendered HTML)
+function initHeroSlider(container) {
+  const slider = container.querySelector('#heroSlider');
+  if (!slider) return;
+  const dots = container.querySelectorAll('.hero-dot');
+  const totalSlides = container.querySelectorAll('.hero-slide').length;
+  let current = 0;
+
+  function goToSlide(i) {
+    current = i;
+    slider.style.transform = `translateX(-${i * 100}%)`;
+    dots.forEach((d, idx) => d.classList.toggle('active', idx === i));
+  }
+
+  dots.forEach(dot => dot.addEventListener('click', () => goToSlide(parseInt(dot.dataset.i))));
+  if (totalSlides > 1) setInterval(() => goToSlide((current + 1) % totalSlides), 5000);
+}
+
 // Load hero / featured
 async function loadHero() {
+  const hero = document.getElementById('heroSection');
+  if (!hero) return;
+  // SSR already rendered the slides — just set up interactivity
+  if (window.HOME_SSR) { initHeroSlider(hero); return; }
   try {
-    const hero = document.getElementById('heroSection');
-    if (!hero) return;
     const data = await fetch('/api/comics?sort=views&limit=6&adult=all').then(r => r.json());
     const comics = data.comics || [];
     if (!comics.length) { hero.innerHTML = `<div class="hero-empty"><i class="fa fa-book-open"></i><p>No comics yet. <a href="/admin" style="color:var(--red)">Upload some!</a></p></div>`; return; }
     renderHero(hero, comics);
   } catch (e) {
-    document.getElementById('heroSection').innerHTML = `<div class="hero-empty"><i class="fa fa-exclamation-circle"></i><p>Failed to load.</p></div>`;
+    hero.innerHTML = `<div class="hero-empty"><i class="fa fa-exclamation-circle"></i><p>Failed to load.</p></div>`;
   }
 }
 
 function renderHero(container, comics) {
-  let current = 0;
   const slides = comics.map(c => {
     let genres = [];
     try { genres = JSON.parse(c.genres); } catch {}
@@ -83,30 +102,16 @@ function renderHero(container, comics) {
   }).join('');
 
   const dots = comics.map((_, i) => `<div class="hero-dot${i === 0 ? ' active' : ''}" data-i="${i}"></div>`).join('');
-
   container.innerHTML = `
     <div class="hero-slider" id="heroSlider">${slides}</div>
     ${comics.length > 1 ? `<div class="hero-dots">${dots}</div>` : ''}`;
 
-  // Dots click
-  container.querySelectorAll('.hero-dot').forEach(dot => {
-    dot.addEventListener('click', () => goToSlide(parseInt(dot.dataset.i)));
-  });
-
-  function goToSlide(i) {
-    current = i;
-    document.getElementById('heroSlider').style.transform = `translateX(-${i * 100}%)`;
-    container.querySelectorAll('.hero-dot').forEach((d, idx) => d.classList.toggle('active', idx === i));
-  }
-
-  // Auto-slide
-  if (comics.length > 1) {
-    setInterval(() => goToSlide((current + 1) % comics.length), 5000);
-  }
+  initHeroSlider(container);
 }
 
 // Load new releases row
 async function loadNewReleases() {
+  if (window.HOME_SSR) return;
   const el = document.getElementById('newReleasesRow');
   if (!el) return;
   try {
@@ -117,6 +122,7 @@ async function loadNewReleases() {
 
 // Load popular grid
 async function loadPopular() {
+  if (window.HOME_SSR) return;
   const el = document.getElementById('popularGrid');
   if (!el) return;
   try {
@@ -127,6 +133,7 @@ async function loadPopular() {
 
 // Load a genre category row
 async function loadGenreRow(genre, elementId) {
+  if (window.HOME_SSR) return;
   const el = document.getElementById(elementId);
   if (!el) return;
   try {
@@ -139,6 +146,7 @@ async function loadGenreRow(genre, elementId) {
 
 // Load most viewed row
 async function loadMostViewed() {
+  if (window.HOME_SSR) return;
   const el = document.getElementById('mostViewedRow');
   if (!el) return;
   try {
@@ -151,6 +159,7 @@ async function loadMostViewed() {
 
 // Load genre tags
 async function loadGenreTags() {
+  if (window.HOME_SSR) return;
   const el = document.getElementById('genreTags');
   if (!el) return;
   try {

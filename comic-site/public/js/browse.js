@@ -1,8 +1,8 @@
 const params = new URLSearchParams(location.search);
-let currentOffset = 0;
+let currentOffset = window.BROWSE_LOADED || 0;
 const limit = 24;
 let loading = false;
-let total = 0;
+let total = window.BROWSE_TOTAL || 0;
 
 // Hamburger
 document.getElementById('hamburger')?.addEventListener('click', () => {
@@ -115,4 +115,13 @@ document.getElementById('loadMoreBtn').addEventListener('click', () => loadComic
 
 
 loadGenreFilter();
-loadComics(true);
+
+if (window.BROWSE_SSR) {
+  // Grid is already rendered by SSR — just show/hide Load More if needed
+  const loadMoreBtn = document.getElementById('loadMoreBtn');
+  const loadingEl   = document.getElementById('browseLoading');
+  if (loadingEl)   loadingEl.style.display = 'none';
+  if (loadMoreBtn) loadMoreBtn.style.display = currentOffset < total ? 'block' : 'none';
+} else {
+  loadComics(true);
+}

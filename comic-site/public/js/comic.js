@@ -13,6 +13,11 @@ async function loadComic() {
 
 async function startLoadComic() {
   const page = document.getElementById('comicDetailPage');
+
+  // If the server already rendered content (SSR), skip the initial re-render
+  // to avoid a flash of the loading spinner. The page is already fully usable.
+  if (window.COMIC_SSR) return;
+
   try {
     const [comic, chapters] = await Promise.all([
       fetch(`/api/comics/${id}`).then(r => { if (!r.ok) throw new Error('Not found'); return r.json(); }),
