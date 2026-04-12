@@ -11,12 +11,25 @@ async function loadComic() {
   startLoadComic();
 }
 
+async function refreshViewCount() {
+  // Fetch the live view count from the API and update the displayed number.
+  // The SSR page bakes in the view count at render time; this corrects it after load.
+  try {
+    const comic = await fetch(`/api/comics/${id}`).then(r => r.ok ? r.json() : null);
+    if (!comic) return;
+    const el = document.querySelector('.comic-meta-item .fa-eye');
+    if (el && el.parentElement) {
+      el.parentElement.innerHTML = `<i class="fa fa-eye"></i> ${comic.views || 0} Views`;
+    }
+  } catch {}
+}
+
 async function startLoadComic() {
   const page = document.getElementById('comicDetailPage');
 
-  // If the server already rendered content (SSR), skip the initial re-render
-  // to avoid a flash of the loading spinner. The page is already fully usable.
-  if (window.COMIC_SSR) return;
+  // If the server already rendered content (SSR), skip the full re-render
+  // but still refresh the live view count since SSR bakes it in at load time.
+  if (window.COMIC_SSR) { refreshViewCount(); return; }
 
   try {
     const [comic, chapters] = await Promise.all([
