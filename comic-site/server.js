@@ -153,6 +153,9 @@ async function serveComicPage(comic, comicId, req, res) {
   let genres = [];
   try { genres = JSON.parse(comic.genres); } catch {}
 
+  // Count this page view (comic.js skips the API call on SSR pages)
+  pool.query('UPDATE comics SET views = views + 1 WHERE id = $1', [comic.id]).catch(() => {});
+
   // Fetch chapters for SSR — Google needs real content in the initial HTML
   const { rows: chapters } = await pool.query(
     `SELECT *, (SELECT COUNT(*) FROM pages WHERE chapter_id = chapters.id) AS page_count

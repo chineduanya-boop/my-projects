@@ -116,7 +116,7 @@ router.get('/comics/:id', async (req, res) => {
       FROM comics c WHERE ${condition}
     `, [param]);
     if (!rows[0]) return res.status(404).json({ error: 'Comic not found' });
-    pool.query('UPDATE comics SET views = views + 1 WHERE id = $1', [req.params.id]).catch(() => {});
+    pool.query('UPDATE comics SET views = views + 1 WHERE id = $1', [rows[0].id]).catch(() => {});
     res.set('Cache-Control', 'public, max-age=60');
     res.json(rows[0]);
   } catch (err) { res.status(500).json({ error: err.message }); }
