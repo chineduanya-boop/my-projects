@@ -1,0 +1,21 @@
+{
+  "name": "mangvault-twitter-bot",
+  "version": "1.0.0",
+  "description": "Twitter automation bot for MangVault — posts viral manga/manhwa content",
+  "main": "scheduler.js",
+  "scripts": {
+    "post": "node post-now.js",
+    "schedule": "node scheduler.js",
+    "preview": "node preview.js",
+    "engage": "node engage.js",
+    "quote": "node quote-tweet.js",
+    "generate": "node generate.js",
+    "start": "node scheduler.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.90.0",
+    "dotenv": "^16.4.5",
+    "node-cron": "^3.0.3",
+    "twitter-api-v2": "^1.18.2"
+  }
+}
