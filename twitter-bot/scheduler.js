@@ -133,11 +133,16 @@ function runScript(script, args = []) {
 }
 
 const ENGAGE_SCHEDULES = [
+  { label: 'Engage 7am WAT',   cron: '0 6 * * *'   },
   { label: 'Engage 9am WAT',   cron: '30 8 * * *'  },
-  { label: 'Engage 12pm WAT',  cron: '0 11 * * *'  },
+  { label: 'Engage 11am WAT',  cron: '0 10 * * *'  },
+  { label: 'Engage 1pm WAT',   cron: '0 12 * * *'  },
   { label: 'Engage 3pm WAT',   cron: '30 14 * * *' },
+  { label: 'Engage 5pm WAT',   cron: '0 16 * * *'  },
   { label: 'Engage 7pm WAT',   cron: '0 18 * * *'  },
-  { label: 'Engage 10pm WAT',  cron: '0 21 * * *'  },
+  { label: 'Engage 9pm WAT',   cron: '0 20 * * *'  },
+  { label: 'Engage 11pm WAT',  cron: '0 22 * * *'  },
+  { label: 'Engage 1am WAT',   cron: '0 0 * * *'   },
 ];
 
 const QT_SCHEDULE = { label: 'Quote-tweet 2pm WAT', cron: '0 13 * * *' };
