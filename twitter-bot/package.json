@@ -10,6 +10,7 @@
     "engage": "node engage.js",
     "quote": "node quote-tweet.js",
     "generate": "node generate.js",
+    "thread": "node thread.js --preview",
     "start": "node scheduler.js"
   },
   "dependencies": {

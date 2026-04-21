@@ -132,20 +132,24 @@ function runScript(script, args = []) {
   });
 }
 
+// 6 engagement runs/day — enough to stay active without tripping spam filters.
+// Each run: mentions + big account replies + hashtag engagement + follow-back.
 const ENGAGE_SCHEDULES = [
-  { label: 'Engage 7am WAT',   cron: '0 6 * * *'   },
-  { label: 'Engage 9am WAT',   cron: '30 8 * * *'  },
+  { label: 'Engage 8am WAT',   cron: '0 7 * * *'   },
   { label: 'Engage 11am WAT',  cron: '0 10 * * *'  },
-  { label: 'Engage 1pm WAT',   cron: '0 12 * * *'  },
-  { label: 'Engage 3pm WAT',   cron: '30 14 * * *' },
+  { label: 'Engage 2pm WAT',   cron: '0 13 * * *'  },
   { label: 'Engage 5pm WAT',   cron: '0 16 * * *'  },
-  { label: 'Engage 7pm WAT',   cron: '0 18 * * *'  },
-  { label: 'Engage 9pm WAT',   cron: '0 20 * * *'  },
+  { label: 'Engage 8pm WAT',   cron: '0 19 * * *'  },
   { label: 'Engage 11pm WAT',  cron: '0 22 * * *'  },
-  { label: 'Engage 1am WAT',   cron: '0 0 * * *'   },
 ];
 
-const QT_SCHEDULE = { label: 'Quote-tweet 2pm WAT', cron: '0 13 * * *' };
+const QT_SCHEDULE = { label: 'Quote-tweet 3pm WAT', cron: '0 14 * * *' };
+
+// Threads 2x/week — Tue and Fri at 10am WAT. High-engagement content that builds followers fast.
+const THREAD_SCHEDULES = [
+  { label: 'Thread Tuesday 10am WAT', cron: '0 9 * * 2' },
+  { label: 'Thread Friday 10am WAT',  cron: '0 9 * * 5' },
+];
 
 if (process.env.ENABLE_ENGAGEMENT !== 'false') {
   console.log('\nEngagement times (WAT / UTC+1):');
@@ -156,6 +160,12 @@ if (process.env.ENABLE_ENGAGEMENT !== 'false') {
 
   console.log(`  • ${QT_SCHEDULE.label}  [${QT_SCHEDULE.cron}]`);
   cron.schedule(QT_SCHEDULE.cron, () => runScript('quote-tweet.js'), { timezone: 'UTC' });
+
+  console.log('\nThread schedule (2x/week):');
+  THREAD_SCHEDULES.forEach(({ label, cron: schedule }) => {
+    console.log(`  • ${label}  [${schedule}]`);
+    cron.schedule(schedule, () => runScript('thread.js'), { timezone: 'UTC' });
+  });
 }
 
 console.log('\nBot is running. Press Ctrl+C to stop.\n');
@@ -174,4 +184,9 @@ if (process.argv.includes('--engage-now')) {
 if (process.argv.includes('--quote-now')) {
   console.log('[--quote-now] Running quote-tweet immediately...');
   runScript('quote-tweet.js');
+}
+
+if (process.argv.includes('--thread-now')) {
+  console.log('[--thread-now] Generating and posting a thread immediately...');
+  runScript('thread.js');
 }

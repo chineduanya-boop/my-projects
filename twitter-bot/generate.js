@@ -28,15 +28,20 @@ const SERIES = [
 ];
 
 const TWEET_STYLES = [
-  'hot take / controversial opinion',
-  'relatable reader experience (2am reading, crying at chapters, power scaling debates)',
-  'broke/woke comparison format',
-  'spoiler-free plot hook that makes people want to read',
-  'list format (reasons to read, what happens in the story)',
-  'POV story format',
-  'quote or iconic moment from the series with reaction',
-  'anime vs manhwa comparison',
-  'day-by-day rabbit hole progression',
+  'spicy hot take / controversial opinion that will make fans argue in the replies',
+  'debate starter — pose a question that divides the fandom (e.g. "X vs Y, who wins")',
+  'relatable reader experience — 2am reading sessions, crying at chapters, can\'t stop reading',
+  'broke/woke/galaxy brain comparison format',
+  'spoiler-free plot hook that creates massive curiosity and FOMO',
+  'list format — ranked list of something specific (best arcs, strongest characters, saddest moments)',
+  'POV format — put the reader inside a moment from the story',
+  'quote or iconic line from the series with a punchy reaction',
+  'anime-only vs manhwa reader comparison — make the manga reader feel elite',
+  'day-by-day descent into the rabbit hole format',
+  'unpopular opinion format — state something most fans secretly agree with',
+  'villain appreciation post — why the antagonist was actually right',
+  '"nobody talks about X enough" appreciation tweet for an underrated moment or character',
+  'power scaling argument bait — make a specific claim about who would beat who',
 ];
 
 // ── Prompt builder ────────────────────────────────────────────────────────────

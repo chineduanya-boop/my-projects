@@ -1,10 +1,11 @@
 // engage.js — Interact with other X users
-// Handles: reply to mentions, like+reply to hashtag posts, follow back followers
+// Handles: reply to mentions, engage hashtags, engage big accounts, follow back
 //
 // Usage:
 //   node engage.js                  → run all engagement tasks
 //   node engage.js --mentions       → reply to mentions only
 //   node engage.js --hashtags       → engage with hashtag posts only
+//   node engage.js --bigaccounts    → reply to big account posts only
 //   node engage.js --followback     → follow back followers only
 
 require('dotenv').config();
@@ -16,43 +17,74 @@ const path = require('path');
 const DRY_RUN = process.env.DRY_RUN === 'true';
 const ENGAGE_STATE_FILE = path.join(__dirname, 'engage-state.json');
 
-// ── Persona prompt ────────────────────────────────────────────────────────────
+// ── Big accounts to engage ────────────────────────────────────────────────────
+// Replying to large accounts puts @manhwaxcomics in front of their huge audiences.
+// When our reply is funny enough to get likes, thousands of their followers see us.
+
+const BIG_ACCOUNTS = [
+  'Crunchyroll',
+  'webtoon',
+  'VizMedia',
+  'AniListco',
+  'myanimelist',
+  'MangaPlusENG',
+  'shonenjump',
+  'animenewsnetwork',
+  'ComicBookResources',
+  'IGN',
+];
+
+// ── Persona ───────────────────────────────────────────────────────────────────
 
 const PERSONA = `You are the official Twitter/X account for MangVault.com — a free manga and manhwa reading site.
 
 Your personality:
 - Funny, banter-ish, and a little unhinged in the best way
-- You roast people lovingly, trade jokes, and hype up great manga/manhwa
+- You roast people lovingly, trade jokes, hype up great manga/manhwa
 - Occasionally edgy and provocative — you say what readers are actually thinking
 - You trigger emotional responses: laughter, nostalgia, hype, sometimes mild outrage
-- You're deeply knowledgeable about manga, manhwa, and anime culture
-- You speak like a real person, not a brand — casual, witty, no corporate fluff
-- You always find a natural way to mention or link to https://mangvault.com
+- Deeply knowledgeable about manga, manhwa, and anime culture — names, arcs, characters, power scaling
+- You speak like a real person, not a brand — casual, raw, no corporate fluff
+- You make people laugh FIRST. The link is a reward, not an ad.
 
-Your mission: Every reply must subtly (or not so subtly) get people curious about MangVault.
-Don't be spammy — be clever. Make them laugh first, then drop the link like it's the most natural thing in the world.`;
+Strategy: Build personality and laughs. The mangvault.com link comes only when it feels natural — not in every reply.`;
+
+// ── URL throttle ──────────────────────────────────────────────────────────────
+// Only ~1 in 4 replies includes the URL. Prevents spam flags and makes the
+// non-URL replies feel more human, which actually builds better follower trust.
+
+function shouldIncludeUrl() {
+  return Math.random() < 0.25;
+}
 
 // ── AI reply generator ────────────────────────────────────────────────────────
 
 const anthropic = new Anthropic();
 
-async function generateReply(tweetText, authorUsername, context = 'hashtag') {
-  const contextHint = context === 'mention'
-    ? `Someone mentioned or replied to @MangVaultHQ. They said: "${tweetText}"`
-    : `You found this tweet by someone you want to engage with. They said: "${tweetText}"`;
+async function generateReply(tweetText, authorUsername, context = 'hashtag', includeUrl = false) {
+  const urlInstruction = includeUrl
+    ? 'Find a natural, non-forced way to drop a link to https://mangvault.com or mention MangVault at the end.'
+    : 'Do NOT include any URL or mention MangVault. Just be funny, engaging, and build rapport. The link comes later.';
 
-  const prompt = `${contextHint}
+  const contextLine = context === 'mention'
+    ? `Someone mentioned @manhwaxcomics. They said: "${tweetText}"`
+    : context === 'bigaccount'
+    ? `A major account (@${authorUsername}) posted this. Your reply needs to be SHARP — you're competing with thousands of other replies for attention: "${tweetText}"`
+    : `You found this tweet via hashtag search. They said: "${tweetText}"`;
 
-Write ONE reply tweet as @MangVaultHQ. Be funny, banter-ish, and drop a natural mention of MangVault or a link to https://mangvault.com.
+  const prompt = `${contextLine}
+
+Write ONE reply tweet as @manhwaxcomics. Be funny, banter-ish, and on point.
+
+${urlInstruction}
 
 Rules:
 - Max 250 characters
-- Must feel organic, not like an ad
+- Reference specific things from their tweet where possible
 - Can be slightly edgy or playfully provocative
-- Reference specific things from their tweet if possible
-- End with or include mangvault.com naturally (not forced)
 - No hashtags
 - No quotation marks around the reply
+- Speak like a real person, not a brand
 
 Reply only with the tweet text. Nothing else.`;
 
@@ -71,19 +103,26 @@ Reply only with the tweet text. Nothing else.`;
   }
 }
 
-// ── Fallback replies (used if AI fails or API key missing) ────────────────────
+// ── Fallback replies ──────────────────────────────────────────────────────────
 
-const FALLBACK_REPLIES = [
+const FALLBACK_REPLIES_WITH_URL = [
   "bro you have NO idea what you're missing on mangvault.com 😭 40+ free titles just sitting there",
   "this is the sign you needed to go read it for free at mangvault.com. you're welcome.",
   "the manhwa version goes 10x harder ngl → mangvault.com 🔥",
   "okay but have you cried at 3am over a manhwa chapter yet? mangvault.com will fix that",
-  "we don't gatekeep here. free. no sign-up. mangvault.com. go.",
-  "trust the process: read 1 chapter → cry → reread → tell everyone → mangvault.com",
 ];
 
-function fallbackReply() {
-  return FALLBACK_REPLIES[Math.floor(Math.random() * FALLBACK_REPLIES.length)];
+const FALLBACK_REPLIES_NO_URL = [
+  "this is sending me 💀",
+  "the way this is so accurate it hurts",
+  "NOT ME reading this at 2am nodding aggressively",
+  "manga/manhwa readers are a completely different species and I mean that as the highest compliment",
+  "whoever made this gets it. they really get it.",
+];
+
+function fallbackReply(includeUrl) {
+  const pool = includeUrl ? FALLBACK_REPLIES_WITH_URL : FALLBACK_REPLIES_NO_URL;
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -147,14 +186,15 @@ async function replyToMentions(client, state) {
       if (state.repliedTweets.includes(mention.id)) continue;
 
       const authorUsername = usersMap[mention.author_id] || 'them';
+      const includeUrl = shouldIncludeUrl();
       let replyText;
 
       if (process.env.ANTHROPIC_API_KEY) {
-        replyText = await generateReply(mention.text, authorUsername, 'mention');
+        replyText = await generateReply(mention.text, authorUsername, 'mention', includeUrl);
       }
-      if (!replyText) replyText = fallbackReply();
+      if (!replyText) replyText = fallbackReply(includeUrl);
 
-      console.log(`  → Replying to @${authorUsername} (${mention.id}): "${replyText.substring(0, 60)}..."`);
+      console.log(`  → @${authorUsername} (${mention.id}): "${replyText.substring(0, 70)}"`);
 
       if (!DRY_RUN) {
         await client.v2.reply(replyText, mention.id);
@@ -172,13 +212,88 @@ async function replyToMentions(client, state) {
   }
 }
 
+// ── Engage big accounts ───────────────────────────────────────────────────────
+// Replies to recent tweets from large manga/anime accounts.
+// Getting likes on these replies exposes @manhwaxcomics to thousands of their followers.
+
+async function engageBigAccounts(client, state) {
+  console.log('\n[BigAccounts] Targeting large manga/anime accounts...');
+
+  const accounts = process.env.BIG_ACCOUNTS
+    ? process.env.BIG_ACCOUNTS.split(',').map(a => a.trim())
+    : BIG_ACCOUNTS;
+
+  // Pick 3 random accounts each run to stay varied
+  const targets = accounts.sort(() => 0.5 - Math.random()).slice(0, 3);
+  const query = targets.map(a => `from:${a}`).join(' OR ');
+  const fullQuery = `(${query}) -is:retweet lang:en`;
+
+  try {
+    const results = await client.v2.search(fullQuery, {
+      max_results: 15,
+      'tweet.fields': ['text', 'author_id', 'public_metrics'],
+      'user.fields': ['username'],
+      expansions: ['author_id'],
+    });
+
+    const posts = results.data?.data ?? [];
+    const usersMap = {};
+    (results.data?.includes?.users ?? []).forEach(u => { usersMap[u.id] = u.username; });
+
+    if (posts.length === 0) {
+      console.log('[BigAccounts] No posts found.');
+      return;
+    }
+
+    // Prefer posts with more engagement (more eyes on our reply)
+    const sorted = posts.sort((a, b) =>
+      (b.public_metrics?.like_count ?? 0) - (a.public_metrics?.like_count ?? 0)
+    );
+
+    let engaged = 0;
+    const maxEngage = 2;
+
+    for (const post of sorted) {
+      if (engaged >= maxEngage) break;
+      if (state.repliedTweets.includes(post.id)) continue;
+
+      const authorUsername = usersMap[post.author_id] || 'unknown';
+      // Big account replies: almost never include URL — just be funny and get likes
+      const includeUrl = Math.random() < 0.1;
+      let replyText;
+
+      if (process.env.ANTHROPIC_API_KEY) {
+        replyText = await generateReply(post.text, authorUsername, 'bigaccount', includeUrl);
+      }
+      if (!replyText) replyText = fallbackReply(includeUrl);
+
+      console.log(`  [@${authorUsername}] ${post.id}: "${replyText.substring(0, 70)}"`);
+
+      if (!DRY_RUN) {
+        await client.v2.reply(replyText, post.id);
+        state.repliedTweets.push(post.id);
+        if (state.repliedTweets.length > 1000) state.repliedTweets = state.repliedTweets.slice(-1000);
+        saveEngageState(state);
+        engaged++;
+        await sleep(3000);
+      } else {
+        engaged++;
+      }
+    }
+
+    console.log(`[BigAccounts] Engaged with ${engaged} post(s).`);
+  } catch (err) {
+    console.error('[BigAccounts] Error:', err.message);
+  }
+}
+
 // ── Engage with hashtags ──────────────────────────────────────────────────────
 
 async function engageHashtags(client, state) {
   const hashtags = (process.env.ENGAGE_HASHTAGS || 'manhwa,SoloLeveling,manga,TowerOfGod,ORV,anime')
     .split(',').map(h => h.trim());
 
-  const maxPerTag = parseInt(process.env.ENGAGE_PER_HASHTAG || '5', 10);
+  const maxPerTag = parseInt(process.env.ENGAGE_PER_HASHTAG || '2', 10);
 
   console.log(`\n[Hashtags] Engaging with: ${hashtags.map(h => '#' + h).join(', ')}`);
 
@@ -203,14 +318,15 @@ async function engageHashtags(client, state) {
         if (state.repliedTweets.includes(post.id)) continue;
 
         const authorUsername = usersMap[post.author_id] || 'them';
+        const includeUrl = shouldIncludeUrl();
         let replyText;
 
         if (process.env.ANTHROPIC_API_KEY) {
-          replyText = await generateReply(post.text, authorUsername, 'hashtag');
+          replyText = await generateReply(post.text, authorUsername, 'hashtag', includeUrl);
         }
-        if (!replyText) replyText = fallbackReply();
+        if (!replyText) replyText = fallbackReply(includeUrl);
 
-        console.log(`  [#${tag}] @${authorUsername}: "${replyText.substring(0, 50)}..."`);
+        console.log(`  [#${tag}] @${authorUsername}: "${replyText.substring(0, 60)}"`);
 
         if (!DRY_RUN) {
           await client.v2.like(await getMyId(client), post.id);
@@ -308,15 +424,10 @@ async function main() {
   const client = getClient();
   const state = loadEngageState();
 
-  if (runAll || args.includes('--mentions')) {
-    await replyToMentions(client, state);
-  }
-  if (runAll || args.includes('--hashtags')) {
-    await engageHashtags(client, state);
-  }
-  if (runAll || args.includes('--followback')) {
-    await followBackFollowers(client, state);
-  }
+  if (runAll || args.includes('--mentions')) await replyToMentions(client, state);
+  if (runAll || args.includes('--bigaccounts')) await engageBigAccounts(client, state);
+  if (runAll || args.includes('--hashtags')) await engageHashtags(client, state);
+  if (runAll || args.includes('--followback')) await followBackFollowers(client, state);
 
   console.log('\n✓ Engagement run complete.');
 }

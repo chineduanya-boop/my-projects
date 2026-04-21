@@ -7,24 +7,50 @@
 
 require('dotenv').config();
 const { TwitterApi } = require('twitter-api-v2');
+const Anthropic = require('@anthropic-ai/sdk');
 const fs = require('fs');
 const path = require('path');
 
 const DRY_RUN = process.env.DRY_RUN === 'true';
 const QT_STATE_FILE = path.join(__dirname, 'engage-state.json');
 
-// ── Quote-tweet templates ─────────────────────────────────────────────────────
-// Use {url} as placeholder for the tweet being quoted
+// ── AI quote-tweet generator ──────────────────────────────────────────────────
 
-const QT_TEMPLATES = [
+const anthropic = new Anthropic();
+
+async function generateQT(tweetText) {
+  if (!process.env.ANTHROPIC_API_KEY) return null;
+
+  try {
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 120,
+      system: 'You are @manhwaxcomics — a funny, banter-ish Twitter account for MangVault.com (free manga/manhwa site). You quote-tweet great manga/manhwa content with witty commentary.',
+      messages: [{
+        role: 'user',
+        content: `Write a quote-tweet for this post: "${tweetText}"
+
+Add a funny, punchy comment that builds on what they said. Naturally include https://mangvault.com about half the time — when it fits. When it doesn't fit, just be funny.
+
+Max 200 characters. No hashtags. Just the quote-tweet text, nothing else.`,
+      }],
+    });
+    return message.content[0].text.trim().replace(/^["']|["']$/g, '');
+  } catch (err) {
+    return null;
+  }
+}
+
+// ── Fallback quote-tweet templates ────────────────────────────────────────────
+
+const QT_FALLBACKS = [
   "This is exactly why manhwa is eating 🔥 Read the full series free at https://mangvault.com",
   "The manga/manhwa community never misses 🙌 More free titles at https://mangvault.com",
   "Facts. And you can read it all free at https://mangvault.com 👇",
-  "The algorithm buried this but you deserve to see it. Also — free manga/manhwa → https://mangvault.com",
-  "Manhwa readers stay winning 🏆 Catch up on all the best titles free → https://mangvault.com",
-  "This thread is giving everything ✨ The manhwa version goes even harder — https://mangvault.com",
   "If you know, you know 🔥 For those who don't — start here free → https://mangvault.com",
-  "The manhwa community is undefeated. Free titles at https://mangvault.com 👑",
+  "The manhwa community is undefeated 👑",
+  "NOT A SINGLE LIE DETECTED",
+  "this tweet lives in my head rent free",
 ];
 
 // Search queries that find high-quality niche content to quote-tweet
@@ -71,6 +97,7 @@ function randomFrom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -83,7 +110,7 @@ async function findAndQuoteTweet(client, state, maxCount) {
 
   const results = await client.v2.search(query, {
     max_results: 15,
-    'tweet.fields': ['author_id', 'public_metrics'],
+    'tweet.fields': ['text', 'author_id', 'public_metrics'],
   });
 
   const posts = results.data?.data ?? [];
@@ -106,7 +133,8 @@ async function findAndQuoteTweet(client, state, maxCount) {
     if (count >= maxCount) break;
 
     const tweetUrl = `https://twitter.com/i/web/status/${post.id}`;
-    const quoteText = randomFrom(QT_TEMPLATES);
+    const aiText = await generateQT(post.text || '');
+    const quoteText = aiText || randomFrom(QT_FALLBACKS);
 
     console.log(`  → Quote-tweeting ${post.id}`);
     console.log(`     "${quoteText.substring(0, 70)}..."`);

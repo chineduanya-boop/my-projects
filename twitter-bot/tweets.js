@@ -1085,7 +1085,200 @@ Free → ${BASE}/pick-me-up`,
     tags: ['PickMeUp', 'manhwa'],
   },
 
-  // ─── DISCOVERY / STARTER PACKS ───────────────────────────────────────────
+  // ─── HOT TAKES & DEBATES ─────────────────────────────────────────────────
+  // These exist purely to get engagement: replies, RTs, arguments.
+  // Some link to mangvault, some don't — the personality is the point.
+
+  {
+    id: 'ht-01',
+    text: `Unpopular opinion: the anime adaptation almost always ruins the source material.
+
+Solo Leveling. God of High School. Seven Deadly Sins.
+
+The manhwa was RIGHT THERE. Just read the manhwa.`,
+    tags: ['manhwa', 'anime', 'hottake'],
+  },
+  {
+    id: 'ht-02',
+    text: `Sung Jinwoo vs Bam.
+
+You can only save one from a fight to the death.
+
+Go.`,
+    tags: ['SoloLeveling', 'TowerOfGod', 'manhwa', 'powerscaling'],
+  },
+  {
+    id: 'ht-03',
+    text: `The isekai genre has been coasting on mediocrity for 5 years.
+
+TBATE and ORV showed what isekai can be when the author actually tries.
+
+Everything else is filler.`,
+    tags: ['isekai', 'manhwa', 'TBATE', 'ORV'],
+  },
+  {
+    id: 'ht-04',
+    text: `power scaling debates are genuinely the most fun arguments on the internet
+
+and anyone who says "it's just fiction" has never been 3 hours deep in a solo leveling vs tower of god thread at 1am`,
+    tags: ['manhwa', 'powerscaling', 'SoloLeveling', 'TowerOfGod'],
+  },
+  {
+    id: 'ht-05',
+    text: `Hot take: Kim Dokja (ORV) would beat Sung Jinwoo (Solo Leveling) in a fight.
+
+Not because he's stronger.
+
+Because he's read the story and already knows how it ends.`,
+    tags: ['ORV', 'SoloLeveling', 'manhwa', 'powerscaling'],
+  },
+  {
+    id: 'ht-06',
+    text: `Manhwa has objectively surpassed manga in:
+
+• Art quality
+• Pacing
+• Color presentation
+• Series completion rate
+
+Manga has: longer history and Berserk.
+
+That's it. That's the debate.`,
+    tags: ['manhwa', 'manga', 'hottake'],
+  },
+  {
+    id: 'ht-07',
+    text: `Nobody talks about how Tower of God has better political intrigue than most actual political dramas.
+
+The Zahard Empire. The 10 Great Families. The Workshop Battle.
+
+SIU built a civilization. It's insane.`,
+    tags: ['TowerOfGod', 'manhwa'],
+  },
+  {
+    id: 'ht-08',
+    text: `The "anime only" experience is choosing to read the Wikipedia summary of a novel instead of the actual novel.
+
+I don't say this to be mean.
+
+I say this because I need you to go read the manhwa.`,
+    tags: ['anime', 'manhwa', 'manga'],
+  },
+  {
+    id: 'ht-09',
+    text: `Most underrated protagonist in manhwa:
+
+Chung Myung (Return of the Mount Hua Sect)
+
+He's simultaneously the funniest character alive AND would make every S-rank in Solo Leveling reconsider their life choices.`,
+    tags: ['ReturnOfMountHua', 'manhwa', 'powerscaling'],
+  },
+  {
+    id: 'ht-10',
+    text: `manhwa has ruined regular books for me
+
+everything feels slow now
+
+I need 200 chapters of color panels with banger action sequences or I simply cannot focus`,
+    tags: ['manhwa', 'relatable'],
+  },
+  {
+    id: 'ht-11',
+    text: `Name a better villain motivation than Kallavan's in Tower of God.
+
+I'll wait.
+
+(You can't. He's not even wrong and that's the terrifying part.)`,
+    tags: ['TowerOfGod', 'manhwa'],
+  },
+  {
+    id: 'ht-12',
+    text: `The Solo Leveling ending is controversial and I will not pretend otherwise.
+
+But the journey? 179 chapters of the most satisfying power progression in manhwa history.
+
+The ending doesn't erase what came before.`,
+    tags: ['SoloLeveling', 'manhwa'],
+  },
+  {
+    id: 'ht-13',
+    text: `Day 1 of reading manhwa: "I'll try one chapter of Solo Leveling"
+
+Day 3: 170 chapters deep, questioning all previous life decisions
+
+Day 7: reading 4 series simultaneously on MangVault, no regrets
+
+→ https://mangvault.com`,
+    tags: ['manhwa', 'SoloLeveling', 'relatable'],
+  },
+  {
+    id: 'ht-14',
+    text: `The best power system in manhwa isn't Solo Leveling's Shadow Army.
+
+It's Absolute Sword Sense's sword-listening ability.
+
+Giving a "disabled" character a unique power that reframes the entire genre? Masterclass.`,
+    tags: ['AbsoluteSwordSense', 'manhwa', 'powerscaling'],
+  },
+  {
+    id: 'ht-15',
+    text: `every manhwa reader has a specific chapter that broke them
+
+for Solo Leveling fans it's usually the Jeju Island arc
+
+for ORV fans it's... look. you'll know when you get there. we don't talk about it.`,
+    tags: ['manhwa', 'SoloLeveling', 'ORV'],
+  },
+  {
+    id: 'ht-16',
+    text: `"just one more chapter" is the biggest lie in manga/manhwa
+
+I've told it 47 times in the last 6 hours
+
+MangVault is NOT responsible for your sleep schedule → https://mangvault.com`,
+    tags: ['manhwa', 'manga', 'relatable'],
+  },
+  {
+    id: 'ht-17',
+    text: `the best character introductions in manhwa:
+
+1. Sung Jinwoo's "I alone level up" moment
+2. Chun-Woo Han (The Breaker) first fight
+3. Rai waking up in Noblesse
+4. Cid Kagenou's first "I am Atomic"
+
+add yours`,
+    tags: ['manhwa', 'manga'],
+  },
+  {
+    id: 'ht-18',
+    text: `TBATE fans are genuinely the most patient fanbase in manhwa
+
+we've been through the academy arc, the war arc, Arthur going dark, every emotional gut-punch imaginable
+
+and we're still here. still reading. no notes.`,
+    tags: ['TBATE', 'manhwa'],
+  },
+  {
+    id: 'ht-19',
+    text: `if you could only recommend ONE manhwa to someone who has never read manga or manhwa in their life
+
+what would it be and why
+
+(correct answer: Solo Leveling or ORV, there is no third option)`,
+    tags: ['manhwa', 'recommendation'],
+  },
+  {
+    id: 'ht-20',
+    text: `Frankenstein from Noblesse would go insane in any other manhwa universe
+
+544 chapters of pure loyalty and barely contained destructive power
+
+the man said "my master is back, the world will remember its place"`,
+    tags: ['Noblesse', 'manhwa'],
+  },
+
+
 
   {
     id: 'disc-01',
