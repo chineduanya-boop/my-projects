@@ -132,15 +132,10 @@ function runScript(script, args = []) {
   });
 }
 
-// 6 engagement runs/day — enough to stay active without tripping spam filters.
-// Each run: mentions + big account replies + hashtag engagement + follow-back.
+// 2 engagement runs/day — looks human, avoids spam flags, stays in API budget.
 const ENGAGE_SCHEDULES = [
-  { label: 'Engage 8am WAT',   cron: '0 7 * * *'   },
   { label: 'Engage 11am WAT',  cron: '0 10 * * *'  },
-  { label: 'Engage 2pm WAT',   cron: '0 13 * * *'  },
-  { label: 'Engage 5pm WAT',   cron: '0 16 * * *'  },
   { label: 'Engage 8pm WAT',   cron: '0 19 * * *'  },
-  { label: 'Engage 11pm WAT',  cron: '0 22 * * *'  },
 ];
 
 const QT_SCHEDULE = { label: 'Quote-tweet 3pm WAT', cron: '0 14 * * *' };

@@ -293,7 +293,7 @@ async function engageHashtags(client, state) {
   const hashtags = (process.env.ENGAGE_HASHTAGS || 'manhwa,SoloLeveling,manga,TowerOfGod,ORV,anime')
     .split(',').map(h => h.trim());
 
-  const maxPerTag = parseInt(process.env.ENGAGE_PER_HASHTAG || '2', 10);
+  const maxPerTag = parseInt(process.env.ENGAGE_PER_HASHTAG || '1', 10);
 
   console.log(`\n[Hashtags] Engaging with: ${hashtags.map(h => '#' + h).join(', ')}`);
 
