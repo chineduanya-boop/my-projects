@@ -27,10 +27,10 @@ const BIG_ACCOUNTS = [
   'VizMedia',
   'AniListco',
   'myanimelist',
-  'MangaPlusENG',
+  'MangaPlus',
   'shonenjump',
-  'animenewsnetwork',
-  'ComicBookResources',
+  'ANNtv',
+  'CBR',
   'IGN',
 ];
 
