@@ -9,57 +9,82 @@
 
 require('dotenv').config();
 const { TwitterApi } = require('twitter-api-v2');
+const Anthropic = require('@anthropic-ai/sdk');
 const fs = require('fs');
 const path = require('path');
 
 const DRY_RUN = process.env.DRY_RUN === 'true';
 const ENGAGE_STATE_FILE = path.join(__dirname, 'engage-state.json');
 
-// ── Mention replies ───────────────────────────────────────────────────────────
+// ── Persona prompt ────────────────────────────────────────────────────────────
 
-const MENTION_REPLIES = [
-  "You've got great taste 🔥 Check out more free titles at https://mangvault.com",
-  "Facts! MangVault has all the best titles free — https://mangvault.com",
-  "The manhwa community is built different 🙌 Read more free at https://mangvault.com",
-  "Agreed! Start from chapter 1 free at https://mangvault.com",
-  "Welcome to the rabbit hole 😅 More free manga/manhwa → https://mangvault.com",
-  "You're not alone 😂 MangVault has 40+ free titles to keep you busy → https://mangvault.com",
-  "The best stories are free at MangVault → https://mangvault.com",
+const PERSONA = `You are the official Twitter/X account for MangVault.com — a free manga and manhwa reading site.
+
+Your personality:
+- Funny, banter-ish, and a little unhinged in the best way
+- You roast people lovingly, trade jokes, and hype up great manga/manhwa
+- Occasionally edgy and provocative — you say what readers are actually thinking
+- You trigger emotional responses: laughter, nostalgia, hype, sometimes mild outrage
+- You're deeply knowledgeable about manga, manhwa, and anime culture
+- You speak like a real person, not a brand — casual, witty, no corporate fluff
+- You always find a natural way to mention or link to https://mangvault.com
+
+Your mission: Every reply must subtly (or not so subtly) get people curious about MangVault.
+Don't be spammy — be clever. Make them laugh first, then drop the link like it's the most natural thing in the world.`;
+
+// ── AI reply generator ────────────────────────────────────────────────────────
+
+const anthropic = new Anthropic();
+
+async function generateReply(tweetText, authorUsername, context = 'hashtag') {
+  const contextHint = context === 'mention'
+    ? `Someone mentioned or replied to @MangVaultHQ. They said: "${tweetText}"`
+    : `You found this tweet by someone you want to engage with. They said: "${tweetText}"`;
+
+  const prompt = `${contextHint}
+
+Write ONE reply tweet as @MangVaultHQ. Be funny, banter-ish, and drop a natural mention of MangVault or a link to https://mangvault.com.
+
+Rules:
+- Max 250 characters
+- Must feel organic, not like an ad
+- Can be slightly edgy or playfully provocative
+- Reference specific things from their tweet if possible
+- End with or include mangvault.com naturally (not forced)
+- No hashtags
+- No quotation marks around the reply
+
+Reply only with the tweet text. Nothing else.`;
+
+  try {
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 150,
+      system: PERSONA,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    const reply = message.content[0].text.trim().replace(/^["']|["']$/g, '');
+    return reply.length > 275 ? reply.substring(0, 272) + '...' : reply;
+  } catch (err) {
+    console.error('[AI] Failed to generate reply:', err.message);
+    return null;
+  }
+}
+
+// ── Fallback replies (used if AI fails or API key missing) ────────────────────
+
+const FALLBACK_REPLIES = [
+  "bro you have NO idea what you're missing on mangvault.com 😭 40+ free titles just sitting there",
+  "this is the sign you needed to go read it for free at mangvault.com. you're welcome.",
+  "the manhwa version goes 10x harder ngl → mangvault.com 🔥",
+  "okay but have you cried at 3am over a manhwa chapter yet? mangvault.com will fix that",
+  "we don't gatekeep here. free. no sign-up. mangvault.com. go.",
+  "trust the process: read 1 chapter → cry → reread → tell everyone → mangvault.com",
 ];
 
-// ── Hashtag reply templates ───────────────────────────────────────────────────
-
-const HASHTAG_REPLIES = {
-  SoloLeveling: [
-    "Sung Jinwoo's glow-up never gets old 🔥 Read it free from ch.1 → https://mangvault.com/solo-leveling",
-    "Shadow Monarch arc hits different in the manhwa 👑 Free at https://mangvault.com/solo-leveling",
-  ],
-  manhwa: [
-    "If you haven't tried MangVault yet — 40+ manhwa titles, 100% free, no sign-up → https://mangvault.com",
-    "The manhwa scene is seriously underrated 🔥 Read free at https://mangvault.com",
-  ],
-  manga: [
-    "Great picks! MangVault has 40+ manga & manhwa titles all free → https://mangvault.com",
-    "Manga readers know what's up 🙌 More free titles at https://mangvault.com",
-  ],
-  TowerOfGod: [
-    "Bam's journey is one of the greatest stories ever written 🗼 Read free → https://mangvault.com/tower-of-god",
-    "Tower of God has 600+ chapters of pure insanity — all free at https://mangvault.com/tower-of-god",
-  ],
-  ORV: [
-    "ORV will break your heart in the best way 📖 Free at https://mangvault.com/omniscient-readers-viewpoint",
-    "Kim Dokja is the most underrated protagonist in fiction. Change my mind. Free read → https://mangvault.com/omniscient-readers-viewpoint",
-  ],
-  anime: [
-    "If you love anime, the manhwa source material goes even deeper 🔥 Free at https://mangvault.com",
-    "Anime fans — the manga/manhwa versions go WAY harder. Free read → https://mangvault.com",
-  ],
-};
-
-const DEFAULT_HASHTAG_REPLIES = [
-  "Great taste! Check out more free manga & manhwa at https://mangvault.com 🔥",
-  "The manhwa community is thriving 🙌 40+ free titles → https://mangvault.com",
-];
+function fallbackReply() {
+  return FALLBACK_REPLIES[Math.floor(Math.random() * FALLBACK_REPLIES.length)];
+}
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -91,10 +116,6 @@ function getClient() {
   });
 }
 
-function randomFrom(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
 // ── Reply to mentions ─────────────────────────────────────────────────────────
 
 async function replyToMentions(client, state) {
@@ -102,11 +123,18 @@ async function replyToMentions(client, state) {
 
   try {
     const me = await client.v2.me();
-    const params = { max_results: 10 };
+    const params = {
+      max_results: 10,
+      'tweet.fields': ['text', 'author_id'],
+      'user.fields': ['username'],
+      expansions: ['author_id'],
+    };
     if (state.lastMentionId) params.since_id = state.lastMentionId;
 
     const mentions = await client.v2.userMentionTimeline(me.data.id, params);
     const tweets = mentions.data?.data ?? [];
+    const usersMap = {};
+    (mentions.data?.includes?.users ?? []).forEach(u => { usersMap[u.id] = u.username; });
 
     if (tweets.length === 0) {
       console.log('[Mentions] No new mentions.');
@@ -118,18 +146,24 @@ async function replyToMentions(client, state) {
     for (const mention of tweets) {
       if (state.repliedTweets.includes(mention.id)) continue;
 
-      const replyText = randomFrom(MENTION_REPLIES);
-      console.log(`  → Replying to tweet ${mention.id}: "${replyText.substring(0, 60)}..."`);
+      const authorUsername = usersMap[mention.author_id] || 'them';
+      let replyText;
+
+      if (process.env.ANTHROPIC_API_KEY) {
+        replyText = await generateReply(mention.text, authorUsername, 'mention');
+      }
+      if (!replyText) replyText = fallbackReply();
+
+      console.log(`  → Replying to @${authorUsername} (${mention.id}): "${replyText.substring(0, 60)}..."`);
 
       if (!DRY_RUN) {
         await client.v2.reply(replyText, mention.id);
         state.repliedTweets.push(mention.id);
-        // Keep list bounded
         if (state.repliedTweets.length > 500) state.repliedTweets = state.repliedTweets.slice(-500);
+        await sleep(2000);
       }
     }
 
-    // Track highest ID so we don't re-process
     state.lastMentionId = tweets[0].id;
     saveEngageState(state);
     console.log('[Mentions] Done.');
@@ -144,18 +178,23 @@ async function engageHashtags(client, state) {
   const hashtags = (process.env.ENGAGE_HASHTAGS || 'manhwa,SoloLeveling,manga,TowerOfGod,ORV,anime')
     .split(',').map(h => h.trim());
 
-  const maxPerTag = parseInt(process.env.ENGAGE_PER_HASHTAG || '3', 10);
+  const maxPerTag = parseInt(process.env.ENGAGE_PER_HASHTAG || '5', 10);
 
   console.log(`\n[Hashtags] Engaging with: ${hashtags.map(h => '#' + h).join(', ')}`);
 
   for (const tag of hashtags) {
     try {
       const results = await client.v2.search(`#${tag} -is:retweet -is:reply lang:en`, {
-        max_results: 10,
-        'tweet.fields': ['author_id', 'public_metrics'],
+        max_results: 15,
+        'tweet.fields': ['text', 'author_id', 'public_metrics'],
+        'user.fields': ['username'],
+        expansions: ['author_id'],
       });
 
       const posts = results.data?.data ?? [];
+      const usersMap = {};
+      (results.data?.includes?.users ?? []).forEach(u => { usersMap[u.id] = u.username; });
+
       let engaged = 0;
 
       for (const post of posts) {
@@ -163,10 +202,15 @@ async function engageHashtags(client, state) {
         if (state.likedTweets.includes(post.id)) continue;
         if (state.repliedTweets.includes(post.id)) continue;
 
-        const replies = HASHTAG_REPLIES[tag] || DEFAULT_HASHTAG_REPLIES;
-        const replyText = randomFrom(replies);
+        const authorUsername = usersMap[post.author_id] || 'them';
+        let replyText;
 
-        console.log(`  [#${tag}] Liking + replying to ${post.id}: "${replyText.substring(0, 50)}..."`);
+        if (process.env.ANTHROPIC_API_KEY) {
+          replyText = await generateReply(post.text, authorUsername, 'hashtag');
+        }
+        if (!replyText) replyText = fallbackReply();
+
+        console.log(`  [#${tag}] @${authorUsername}: "${replyText.substring(0, 50)}..."`);
 
         if (!DRY_RUN) {
           await client.v2.like(await getMyId(client), post.id);
@@ -176,21 +220,19 @@ async function engageHashtags(client, state) {
           state.repliedTweets.push(post.id);
 
           engaged++;
-          // Throttle to avoid rate limits
-          await sleep(2000);
+          await sleep(3000);
         } else {
           engaged++;
         }
       }
 
-      // Keep lists bounded
       if (state.likedTweets.length > 1000) state.likedTweets = state.likedTweets.slice(-1000);
       if (state.repliedTweets.length > 1000) state.repliedTweets = state.repliedTweets.slice(-1000);
 
       saveEngageState(state);
       console.log(`  [#${tag}] Engaged with ${engaged} post(s).`);
 
-      await sleep(3000);
+      await sleep(4000);
     } catch (err) {
       console.error(`  [#${tag}] Error:`, err.message);
     }
@@ -260,7 +302,8 @@ async function main() {
   console.log('╔══════════════════════════════════════════╗');
   console.log('║   MangVault Bot — Engagement Engine      ║');
   console.log('╚══════════════════════════════════════════╝');
-  console.log(`Mode: ${DRY_RUN ? 'DRY RUN' : 'LIVE'}\n`);
+  console.log(`Mode: ${DRY_RUN ? 'DRY RUN' : 'LIVE'}`);
+  console.log(`AI replies: ${process.env.ANTHROPIC_API_KEY ? 'ENABLED (Claude Haiku)' : 'DISABLED (fallback)'}\n`);
 
   const client = getClient();
   const state = loadEngageState();

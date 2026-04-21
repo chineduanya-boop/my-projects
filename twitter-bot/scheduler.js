@@ -1,9 +1,10 @@
 // scheduler.js — Auto-post tweets on a cron schedule
 // Usage: node scheduler.js
 //
-// Default schedule: 4 posts/day at peak Twitter hours (UTC)
-//   08:00 UTC = 9am WAT (Nigeria)  / 3am EST
-//   11:00 UTC = 12pm WAT           / 6am EST
+// Default schedule: 5 posts/day at peak Twitter hours (UTC)
+//   07:00 UTC = 8am WAT (Nigeria)  / 2am EST
+//   09:00 UTC = 10am WAT           / 4am EST
+//   12:00 UTC = 1pm WAT            / 7am EST
 //   16:00 UTC = 5pm WAT            / 11am EST
 //   20:00 UTC = 9pm WAT            / 3pm EST
 
@@ -95,14 +96,15 @@ async function postTweet() {
 // Nigeria (WAT) is UTC+1. These fire at 9am, 12pm, 5pm, 9pm WAT.
 
 const SCHEDULES = [
-  { label: '9am WAT',  cron: '0 8 * * *'  },
-  { label: '12pm WAT', cron: '0 11 * * *' },
+  { label: '8am WAT',  cron: '0 7 * * *'  },
+  { label: '10am WAT', cron: '0 9 * * *'  },
+  { label: '1pm WAT',  cron: '0 12 * * *' },
   { label: '5pm WAT',  cron: '0 16 * * *' },
   { label: '9pm WAT',  cron: '0 20 * * *' },
 ];
 
 console.log('╔══════════════════════════════════════════╗');
-console.log('║   MangVault Twitter Bot — Scheduler      ║');
+console.log('║   MangVault Twitter Bot — Scheduler v2   ║');
 console.log('╚══════════════════════════════════════════╝');
 console.log(`Mode : ${DRY_RUN ? 'DRY RUN (no real posts)' : 'LIVE'}`);
 console.log(`Queue: ${tweets.length} total tweets loaded`);
@@ -131,9 +133,11 @@ function runScript(script, args = []) {
 }
 
 const ENGAGE_SCHEDULES = [
-  { label: 'Engage 10am WAT',  cron: '30 9 * * *'  },
+  { label: 'Engage 9am WAT',   cron: '30 8 * * *'  },
+  { label: 'Engage 12pm WAT',  cron: '0 11 * * *'  },
   { label: 'Engage 3pm WAT',   cron: '30 14 * * *' },
-  { label: 'Engage 8pm WAT',   cron: '30 19 * * *' },
+  { label: 'Engage 7pm WAT',   cron: '0 18 * * *'  },
+  { label: 'Engage 10pm WAT',  cron: '0 21 * * *'  },
 ];
 
 const QT_SCHEDULE = { label: 'Quote-tweet 2pm WAT', cron: '0 13 * * *' };
