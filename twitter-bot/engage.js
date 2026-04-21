@@ -251,7 +251,7 @@ async function engageBigAccounts(client, state) {
     );
 
     let engaged = 0;
-    const maxEngage = 2;
+    const maxEngage = 5;
 
     for (const post of sorted) {
       if (engaged >= maxEngage) break;
