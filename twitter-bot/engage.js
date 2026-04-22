@@ -223,9 +223,8 @@ async function engageBigAccounts(client, state) {
     ? process.env.BIG_ACCOUNTS.split(',').map(a => a.trim())
     : BIG_ACCOUNTS;
 
-  // Pick 3 random accounts each run to stay varied
-  const targets = accounts.sort(() => 0.5 - Math.random()).slice(0, 3);
-  const query = targets.map(a => `from:${a}`).join(' OR ');
+  // Search all accounts at once so we always have enough posts to pick from
+  const query = accounts.map(a => `from:${a}`).join(' OR ');
   const fullQuery = `(${query}) -is:retweet lang:en`;
 
   try {
