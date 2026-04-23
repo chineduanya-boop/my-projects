@@ -1,11 +1,9 @@
-// engage.js — Interact with other X users
-// Handles: reply to mentions, engage hashtags, engage big accounts, follow back
+// engage.js — Interact with our audience
+// Handles: reply to mentions, follow back
 //
 // Usage:
 //   node engage.js                  → run all engagement tasks
 //   node engage.js --mentions       → reply to mentions only
-//   node engage.js --hashtags       → engage with hashtag posts only
-//   node engage.js --bigaccounts    → reply to big account posts only
 //   node engage.js --followback     → follow back followers only
 
 require('dotenv').config();
@@ -16,23 +14,6 @@ const path = require('path');
 
 const DRY_RUN = process.env.DRY_RUN === 'true';
 const ENGAGE_STATE_FILE = path.join(__dirname, 'engage-state.json');
-
-// ── Big accounts to engage ────────────────────────────────────────────────────
-// Replying to large accounts puts @manhwaxcomics in front of their huge audiences.
-// When our reply is funny enough to get likes, thousands of their followers see us.
-
-const BIG_ACCOUNTS = [
-  'Crunchyroll',
-  'webtoon',
-  'VizMedia',
-  'AniListco',
-  'myanimelist',
-  'MangaPlus',
-  'shonenjump',
-  'ANNtv',
-  'CBR',
-  'IGN',
-];
 
 // ── Persona ───────────────────────────────────────────────────────────────────
 
@@ -61,18 +42,12 @@ function shouldIncludeUrl() {
 
 const anthropic = new Anthropic();
 
-async function generateReply(tweetText, authorUsername, context = 'hashtag', includeUrl = false) {
+async function generateReply(tweetText, authorUsername, includeUrl = false) {
   const urlInstruction = includeUrl
     ? 'Find a natural, non-forced way to drop a link to https://mangvault.com or mention MangVault at the end.'
     : 'Do NOT include any URL or mention MangVault. Just be funny, engaging, and build rapport. The link comes later.';
 
-  const contextLine = context === 'mention'
-    ? `Someone mentioned @manhwaxcomics. They said: "${tweetText}"`
-    : context === 'bigaccount'
-    ? `A major account (@${authorUsername}) posted this. Your reply needs to be SHARP — you're competing with thousands of other replies for attention: "${tweetText}"`
-    : `You found this tweet via hashtag search. They said: "${tweetText}"`;
-
-  const prompt = `${contextLine}
+  const prompt = `Someone mentioned @manhwaxcomics. They said: "${tweetText}"
 
 Write ONE reply tweet as @manhwaxcomics. Be funny, banter-ish, and on point.
 
@@ -129,7 +104,7 @@ function fallbackReply(includeUrl) {
 
 function loadEngageState() {
   if (!fs.existsSync(ENGAGE_STATE_FILE)) {
-    return { lastMentionId: null, likedTweets: [], repliedTweets: [], followedUsers: [] };
+    return { lastMentionId: null, repliedTweets: [], followedUsers: [] };
   }
   return JSON.parse(fs.readFileSync(ENGAGE_STATE_FILE, 'utf8'));
 }
@@ -190,7 +165,7 @@ async function replyToMentions(client, state) {
       let replyText;
 
       if (process.env.ANTHROPIC_API_KEY) {
-        replyText = await generateReply(mention.text, authorUsername, 'mention', includeUrl);
+        replyText = await generateReply(mention.text, authorUsername, includeUrl);
       }
       if (!replyText) replyText = fallbackReply(includeUrl);
 
@@ -209,148 +184,6 @@ async function replyToMentions(client, state) {
     console.log('[Mentions] Done.');
   } catch (err) {
     console.error('[Mentions] Error:', err.message);
-  }
-}
-
-// ── Engage big accounts ───────────────────────────────────────────────────────
-// Replies to recent tweets from large manga/anime accounts.
-// Getting likes on these replies exposes @manhwaxcomics to thousands of their followers.
-
-async function engageBigAccounts(client, state) {
-  console.log('\n[BigAccounts] Targeting large manga/anime accounts...');
-
-  const accounts = process.env.BIG_ACCOUNTS
-    ? process.env.BIG_ACCOUNTS.split(',').map(a => a.trim())
-    : BIG_ACCOUNTS;
-
-  // Search all accounts at once so we always have enough posts to pick from
-  const query = accounts.map(a => `from:${a}`).join(' OR ');
-  const fullQuery = `(${query}) -is:retweet lang:en`;
-
-  try {
-    const results = await client.v2.search(fullQuery, {
-      max_results: 15,
-      'tweet.fields': ['text', 'author_id', 'public_metrics'],
-      'user.fields': ['username'],
-      expansions: ['author_id'],
-    });
-
-    const posts = results.data?.data ?? [];
-    const usersMap = {};
-    (results.data?.includes?.users ?? []).forEach(u => { usersMap[u.id] = u.username; });
-
-    if (posts.length === 0) {
-      console.log('[BigAccounts] No posts found.');
-      return;
-    }
-
-    // Prefer posts with more engagement (more eyes on our reply)
-    const sorted = posts.sort((a, b) =>
-      (b.public_metrics?.like_count ?? 0) - (a.public_metrics?.like_count ?? 0)
-    );
-
-    let engaged = 0;
-    const maxEngage = 5;
-
-    for (const post of sorted) {
-      if (engaged >= maxEngage) break;
-      if (state.repliedTweets.includes(post.id)) continue;
-
-      const authorUsername = usersMap[post.author_id] || 'unknown';
-      // Big account replies: almost never include URL — just be funny and get likes
-      const includeUrl = Math.random() < 0.1;
-      let replyText;
-
-      if (process.env.ANTHROPIC_API_KEY) {
-        replyText = await generateReply(post.text, authorUsername, 'bigaccount', includeUrl);
-      }
-      if (!replyText) replyText = fallbackReply(includeUrl);
-
-      console.log(`  [@${authorUsername}] ${post.id}: "${replyText.substring(0, 70)}"`);
-
-      if (!DRY_RUN) {
-        await client.v2.reply(replyText, post.id);
-        state.repliedTweets.push(post.id);
-        if (state.repliedTweets.length > 1000) state.repliedTweets = state.repliedTweets.slice(-1000);
-        saveEngageState(state);
-        engaged++;
-        await sleep(3000);
-      } else {
-        engaged++;
-      }
-    }
-
-    console.log(`[BigAccounts] Engaged with ${engaged} post(s).`);
-  } catch (err) {
-    console.error('[BigAccounts] Error:', err.message);
-  }
-}
-
-// ── Engage with hashtags ──────────────────────────────────────────────────────
-
-async function engageHashtags(client, state) {
-  const hashtags = (process.env.ENGAGE_HASHTAGS || 'manhwa,SoloLeveling,manga,TowerOfGod,ORV,anime')
-    .split(',').map(h => h.trim());
-
-  const maxPerTag = parseInt(process.env.ENGAGE_PER_HASHTAG || '1', 10);
-
-  console.log(`\n[Hashtags] Engaging with: ${hashtags.map(h => '#' + h).join(', ')}`);
-
-  for (const tag of hashtags) {
-    try {
-      const results = await client.v2.search(`#${tag} -is:retweet -is:reply lang:en`, {
-        max_results: 15,
-        'tweet.fields': ['text', 'author_id', 'public_metrics'],
-        'user.fields': ['username'],
-        expansions: ['author_id'],
-      });
-
-      const posts = results.data?.data ?? [];
-      const usersMap = {};
-      (results.data?.includes?.users ?? []).forEach(u => { usersMap[u.id] = u.username; });
-
-      let engaged = 0;
-
-      for (const post of posts) {
-        if (engaged >= maxPerTag) break;
-        if (state.likedTweets.includes(post.id)) continue;
-        if (state.repliedTweets.includes(post.id)) continue;
-
-        const authorUsername = usersMap[post.author_id] || 'them';
-        const includeUrl = shouldIncludeUrl();
-        let replyText;
-
-        if (process.env.ANTHROPIC_API_KEY) {
-          replyText = await generateReply(post.text, authorUsername, 'hashtag', includeUrl);
-        }
-        if (!replyText) replyText = fallbackReply(includeUrl);
-
-        console.log(`  [#${tag}] @${authorUsername}: "${replyText.substring(0, 60)}"`);
-
-        if (!DRY_RUN) {
-          await client.v2.like(await getMyId(client), post.id);
-          state.likedTweets.push(post.id);
-
-          await client.v2.reply(replyText, post.id);
-          state.repliedTweets.push(post.id);
-
-          engaged++;
-          await sleep(3000);
-        } else {
-          engaged++;
-        }
-      }
-
-      if (state.likedTweets.length > 1000) state.likedTweets = state.likedTweets.slice(-1000);
-      if (state.repliedTweets.length > 1000) state.repliedTweets = state.repliedTweets.slice(-1000);
-
-      saveEngageState(state);
-      console.log(`  [#${tag}] Engaged with ${engaged} post(s).`);
-
-      await sleep(4000);
-    } catch (err) {
-      console.error(`  [#${tag}] Error:`, err.message);
-    }
   }
 }
 
@@ -424,8 +257,6 @@ async function main() {
   const state = loadEngageState();
 
   if (runAll || args.includes('--mentions')) await replyToMentions(client, state);
-  if (runAll || args.includes('--bigaccounts')) await engageBigAccounts(client, state);
-  if (runAll || args.includes('--hashtags')) await engageHashtags(client, state);
   if (runAll || args.includes('--followback')) await followBackFollowers(client, state);
 
   console.log('\n✓ Engagement run complete.');

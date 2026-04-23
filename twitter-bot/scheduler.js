@@ -1,12 +1,12 @@
 // scheduler.js — Auto-post tweets on a cron schedule
 // Usage: node scheduler.js
 //
-// Default schedule: 5 posts/day at peak Twitter hours (UTC)
-//   07:00 UTC = 8am WAT (Nigeria)  / 2am EST
-//   09:00 UTC = 10am WAT           / 4am EST
-//   12:00 UTC = 1pm WAT            / 7am EST
-//   16:00 UTC = 5pm WAT            / 11am EST
-//   20:00 UTC = 9pm WAT            / 3pm EST
+// Schedule: 10 posts/day spread across peak WAT hours (UTC+1)
+//   06:00 UTC = 7am WAT    08:00 UTC = 9am WAT
+//   09:00 UTC = 10am WAT   11:00 UTC = 12pm WAT
+//   12:00 UTC = 1pm WAT    14:00 UTC = 3pm WAT
+//   16:00 UTC = 5pm WAT    18:00 UTC = 7pm WAT
+//   20:00 UTC = 9pm WAT    22:00 UTC = 11pm WAT
 
 require('dotenv').config();
 const cron = require('node-cron');
@@ -16,6 +16,7 @@ const fs = require('fs');
 const path = require('path');
 const tweets = require('./tweets');
 const { attachImage } = require('./media');
+const { appendHashtags } = require('./hashtags');
 
 const STATE_FILE = path.join(__dirname, 'state.json');
 const DRY_RUN = process.env.DRY_RUN === 'true';
@@ -70,10 +71,11 @@ async function postTweet() {
       accessSecret: process.env.TWITTER_ACCESS_SECRET,
     });
 
+    const tweetText = appendHashtags(tweet.text, tweet.tags);
     const mediaId = await attachImage(client, tweet.id);
     const tweetPayload = mediaId
-      ? { text: tweet.text, media: { media_ids: [mediaId] } }
-      : tweet.text;
+      ? { text: tweetText, media: { media_ids: [mediaId] } }
+      : tweetText;
 
     const result = await client.v2.tweet(tweetPayload);
     console.log(`✓ Posted${mediaId ? ' with image' : ''}: https://twitter.com/i/web/status/${result.data.id}`);
@@ -92,15 +94,19 @@ async function postTweet() {
 }
 
 // ── Cron schedule ─────────────────────────────────────────────────────────────
-// Times are UTC — adjust if your server runs in a different timezone.
-// Nigeria (WAT) is UTC+1. These fire at 9am, 12pm, 5pm, 9pm WAT.
+// Times are UTC. Nigeria (WAT) is UTC+1.
 
 const SCHEDULES = [
-  { label: '8am WAT',  cron: '0 7 * * *'  },
+  { label: '7am WAT',  cron: '0 6 * * *'  },
+  { label: '9am WAT',  cron: '0 8 * * *'  },
   { label: '10am WAT', cron: '0 9 * * *'  },
+  { label: '12pm WAT', cron: '0 11 * * *' },
   { label: '1pm WAT',  cron: '0 12 * * *' },
+  { label: '3pm WAT',  cron: '0 14 * * *' },
   { label: '5pm WAT',  cron: '0 16 * * *' },
+  { label: '7pm WAT',  cron: '0 18 * * *' },
   { label: '9pm WAT',  cron: '0 20 * * *' },
+  { label: '11pm WAT', cron: '0 22 * * *' },
 ];
 
 console.log('╔══════════════════════════════════════════╗');
@@ -132,13 +138,11 @@ function runScript(script, args = []) {
   });
 }
 
-// 2 engagement runs/day — looks human, avoids spam flags, stays in API budget.
+// Engagement: replies to mentions + follow-back, 2x/day
 const ENGAGE_SCHEDULES = [
-  { label: 'Engage 11am WAT',  cron: '0 10 * * *'  },
-  { label: 'Engage 8pm WAT',   cron: '0 19 * * *'  },
+  { label: 'Engage 10am WAT', cron: '0 9 * * *'  },
+  { label: 'Engage 8pm WAT',  cron: '0 19 * * *' },
 ];
-
-const QT_SCHEDULE = { label: 'Quote-tweet 3pm WAT', cron: '0 14 * * *' };
 
 // Threads 2x/week — Tue and Fri at 10am WAT. High-engagement content that builds followers fast.
 const THREAD_SCHEDULES = [
@@ -150,11 +154,8 @@ if (process.env.ENABLE_ENGAGEMENT !== 'false') {
   console.log('\nEngagement times (WAT / UTC+1):');
   ENGAGE_SCHEDULES.forEach(({ label, cron: schedule }) => {
     console.log(`  • ${label}  [${schedule}]`);
-    cron.schedule(schedule, () => runScript('engage.js'), { timezone: 'UTC' });
+    cron.schedule(schedule, () => runScript('engage.js', ['--mentions', '--followback']), { timezone: 'UTC' });
   });
-
-  console.log(`  • ${QT_SCHEDULE.label}  [${QT_SCHEDULE.cron}]`);
-  cron.schedule(QT_SCHEDULE.cron, () => runScript('quote-tweet.js'), { timezone: 'UTC' });
 
   console.log('\nThread schedule (2x/week):');
   THREAD_SCHEDULES.forEach(({ label, cron: schedule }) => {
@@ -173,12 +174,7 @@ if (process.argv.includes('--post-now')) {
 
 if (process.argv.includes('--engage-now')) {
   console.log('[--engage-now] Running engagement immediately...');
-  runScript('engage.js');
-}
-
-if (process.argv.includes('--quote-now')) {
-  console.log('[--quote-now] Running quote-tweet immediately...');
-  runScript('quote-tweet.js');
+  runScript('engage.js', ['--mentions', '--followback']);
 }
 
 if (process.argv.includes('--thread-now')) {

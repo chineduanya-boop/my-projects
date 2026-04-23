@@ -10,6 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const tweets = require('./tweets');
 const { attachImage } = require('./media');
+const { appendHashtags } = require('./hashtags');
 
 const STATE_FILE = path.join(__dirname, 'state.json');
 const DRY_RUN = process.env.DRY_RUN === 'true';
@@ -98,10 +99,11 @@ async function main() {
   }
 
   const client = getClient();
+  const tweetText = appendHashtags(tweet.text, tweet.tags);
   const mediaId = await attachImage(client, tweet.id);
   const tweetPayload = mediaId
-    ? { text: tweet.text, media: { media_ids: [mediaId] } }
-    : tweet.text;
+    ? { text: tweetText, media: { media_ids: [mediaId] } }
+    : tweetText;
 
   const result = await client.v2.tweet(tweetPayload);
   console.log(`✓ Posted${mediaId ? ' with image' : ''}! Tweet ID: ${result.data.id}`);
