@@ -1,12 +1,10 @@
 // scheduler.js — Auto-post tweets on a cron schedule
 // Usage: node scheduler.js
 //
-// Schedule: 10 posts/day spread across peak WAT hours (UTC+1)
-//   06:00 UTC = 7am WAT    08:00 UTC = 9am WAT
-//   09:00 UTC = 10am WAT   11:00 UTC = 12pm WAT
-//   12:00 UTC = 1pm WAT    14:00 UTC = 3pm WAT
-//   16:00 UTC = 5pm WAT    18:00 UTC = 7pm WAT
-//   20:00 UTC = 9pm WAT    22:00 UTC = 11pm WAT
+// Schedule: 7 posts/day at peak WAT hours (UTC+1), each with ±20-min jitter
+//   07:00 UTC = 8am WAT    09:00 UTC = 10am WAT   11:00 UTC = 12pm WAT
+//   13:00 UTC = 2pm WAT    15:00 UTC = 4pm WAT    17:00 UTC = 6pm WAT
+//   20:00 UTC = 9pm WAT
 
 require('dotenv').config();
 const cron = require('node-cron');
@@ -94,19 +92,17 @@ async function postTweet() {
 }
 
 // ── Cron schedule ─────────────────────────────────────────────────────────────
-// Times are UTC. Nigeria (WAT) is UTC+1.
+// Cron fires at :00 but each post gets a random 0-20 minute delay so posts
+// never land at exactly the same second every day — breaks the bot signature.
 
 const SCHEDULES = [
-  { label: '7am WAT',  cron: '0 6 * * *'  },
-  { label: '9am WAT',  cron: '0 8 * * *'  },
+  { label: '8am WAT',  cron: '0 7 * * *'  },
   { label: '10am WAT', cron: '0 9 * * *'  },
   { label: '12pm WAT', cron: '0 11 * * *' },
-  { label: '1pm WAT',  cron: '0 12 * * *' },
-  { label: '3pm WAT',  cron: '0 14 * * *' },
-  { label: '5pm WAT',  cron: '0 16 * * *' },
-  { label: '7pm WAT',  cron: '0 18 * * *' },
+  { label: '2pm WAT',  cron: '0 13 * * *' },
+  { label: '4pm WAT',  cron: '0 15 * * *' },
+  { label: '6pm WAT',  cron: '0 17 * * *' },
   { label: '9pm WAT',  cron: '0 20 * * *' },
-  { label: '11pm WAT', cron: '0 22 * * *' },
 ];
 
 console.log('╔══════════════════════════════════════════╗');
@@ -115,12 +111,14 @@ console.log('╚═════════════════════�
 console.log(`Mode : ${DRY_RUN ? 'DRY RUN (no real posts)' : 'LIVE'}`);
 console.log(`Queue: ${tweets.length} total tweets loaded`);
 console.log('');
-console.log('Scheduled post times (WAT / UTC+1):');
-
+console.log('Scheduled post times (WAT / UTC+1, ±20 min jitter):');
 
 SCHEDULES.forEach(({ label, cron: schedule }) => {
   console.log(`  • ${label}  [${schedule}]`);
-  cron.schedule(schedule, () => postTweet(), { timezone: 'UTC' });
+  cron.schedule(schedule, () => {
+    const jitterMs = Math.floor(Math.random() * 20 * 60 * 1000);
+    setTimeout(() => postTweet(), jitterMs);
+  }, { timezone: 'UTC' });
 });
 
 // ── Engagement schedule ───────────────────────────────────────────────────────

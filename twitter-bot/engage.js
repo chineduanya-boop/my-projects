@@ -202,8 +202,10 @@ async function followBackFollowers(client, state) {
       return;
     }
 
+    const DAILY_FOLLOW_CAP = 5;
     let followed = 0;
     for (const user of followerList) {
+      if (followed >= DAILY_FOLLOW_CAP) break;
       if (state.followedUsers.includes(user.id)) continue;
 
       console.log(`  → Following back @${user.username || user.id}`);

@@ -56,10 +56,14 @@ const TAG_MAP = {
 };
 
 const FALLBACK = ['#manga', '#manhwa', '#anime', '#otaku', '#animefan'];
-const MAX_HASHTAGS = 5;
 const TWEET_LIMIT = 280;
 
 function appendHashtags(tweetText, tags = []) {
+  // Tweets with a promo URL get 3 hashtags max to avoid spam signals.
+  // Pure opinion/hot-take tweets (no URL) get up to 5.
+  const hasUrl = tweetText.includes('https://');
+  const MAX_HASHTAGS = hasUrl ? 3 : 5;
+
   // Collect hashtags from matching tags, deduplicated
   const seen = new Set();
   const pool = [];
