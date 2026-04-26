@@ -38,22 +38,57 @@ function comicCard(c) {
     </a>`;
 }
 
-// Wire up hero slider dots + auto-advance (works on SSR'd or JS-rendered HTML)
+// Wire up hero slider dots + auto-advance + swipe/drag (works on SSR'd or JS-rendered HTML)
 function initHeroSlider(container) {
   const slider = container.querySelector('#heroSlider');
   if (!slider) return;
   const dots = container.querySelectorAll('.hero-dot');
   const totalSlides = container.querySelectorAll('.hero-slide').length;
   let current = 0;
+  let autoTimer = null;
 
   function goToSlide(i) {
-    current = i;
-    slider.style.transform = `translateX(-${i * 100}%)`;
-    dots.forEach((d, idx) => d.classList.toggle('active', idx === i));
+    current = ((i % totalSlides) + totalSlides) % totalSlides;
+    slider.style.transform = `translateX(-${current * 100}%)`;
+    dots.forEach((d, idx) => d.classList.toggle('active', idx === current));
   }
 
-  dots.forEach(dot => dot.addEventListener('click', () => goToSlide(parseInt(dot.dataset.i))));
-  if (totalSlides > 1) setInterval(() => goToSlide((current + 1) % totalSlides), 5000);
+  function startAuto() {
+    clearInterval(autoTimer);
+    if (totalSlides > 1) autoTimer = setInterval(() => goToSlide(current + 1), 5000);
+  }
+
+  function stopAuto() { clearInterval(autoTimer); }
+
+  dots.forEach(dot => dot.addEventListener('click', () => {
+    goToSlide(parseInt(dot.dataset.i));
+    startAuto();
+  }));
+
+  // Swipe / mouse-drag
+  let dragStartX = 0;
+  let dragging = false;
+
+  function onDragStart(x) { dragStartX = x; dragging = true; stopAuto(); }
+
+  function onDragEnd(x) {
+    if (!dragging) return;
+    dragging = false;
+    const diff = dragStartX - x;
+    if (Math.abs(diff) > 50) goToSlide(diff > 0 ? current + 1 : current - 1);
+    startAuto();
+  }
+
+  slider.addEventListener('touchstart', e => onDragStart(e.touches[0].clientX), { passive: true });
+  slider.addEventListener('touchend',   e => onDragEnd(e.changedTouches[0].clientX));
+  slider.addEventListener('mousedown',  e => { onDragStart(e.clientX); slider.style.cursor = 'grabbing'; });
+  window.addEventListener('mouseup',    e => { if (dragging) { onDragEnd(e.clientX); slider.style.cursor = ''; } });
+
+  // Pause auto-advance while hovering
+  container.addEventListener('mouseenter', stopAuto);
+  container.addEventListener('mouseleave', startAuto);
+
+  startAuto();
 }
 
 // Load hero / featured
