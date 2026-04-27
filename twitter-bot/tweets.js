@@ -2,7 +2,7 @@
 // All tweets link directly to mangvault.com
 // Organized by: General → Comic-specific
 
-const BASE = 'https://mangvault.com';
+const BASE = 'https://tinyurl.com/26wjfxbw';
 
 const tweets = [
 
@@ -1208,7 +1208,7 @@ Day 3: 170 chapters deep, questioning all previous life decisions
 
 Day 7: reading 4 series simultaneously on MangVault, no regrets
 
-→ https://mangvault.com`,
+→ https://tinyurl.com/26wjfxbw`,
     tags: ['manhwa', 'SoloLeveling', 'relatable'],
   },
   {
@@ -1235,7 +1235,7 @@ for ORV fans it's... look. you'll know when you get there. we don't talk about i
 
 I've told it 47 times in the last 6 hours
 
-MangVault is NOT responsible for your sleep schedule → https://mangvault.com`,
+MangVault is NOT responsible for your sleep schedule → https://tinyurl.com/26wjfxbw`,
     tags: ['manhwa', 'manga', 'relatable'],
   },
   {
