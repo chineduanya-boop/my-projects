@@ -2,7 +2,7 @@
 // All tweets link directly to mangvault.com
 // Organized by: General → Comic-specific
 
-const BASE = 'https://tinyurl.com/26wjfxbw';
+const BASE = 'https://mangvault.com';
 
 const tweets = [
 
@@ -656,7 +656,7 @@ Ijin just ends encounters. Read free → ${BASE}/mercenary-enrollment`,
     id: 'gohs-01',
     text: `God of High School starts as a tournament arc manhwa and ends as a cosmic mythological war involving every religion in human history.
 
-The power scaling is INSANE. Free → ${BASE}/god-of-high-school`,
+The power scaling is INSANE. Free → ${BASE}/browse?genre=Action`,
     tags: ['GodOfHighSchool', 'GOHS', 'manhwa'],
   },
   {
@@ -665,14 +665,14 @@ The power scaling is INSANE. Free → ${BASE}/god-of-high-school`,
 
 He IS the most fun to watch fight.
 
-God of High School — free at MangVault → ${BASE}/god-of-high-school`,
+God of High School — free at MangVault → ${BASE}/browse?genre=Action`,
     tags: ['GodOfHighSchool', 'manhwa'],
   },
   {
     id: 'gohs-03',
     text: `God of High School has been running for 15+ years because Park Yongje refuses to let it be anything less than the most hype manhwa on Earth.
 
-Free from chapter 1 → ${BASE}/god-of-high-school`,
+Free from chapter 1 → ${BASE}/browse?genre=Action`,
     tags: ['GodOfHighSchool', 'manhwa'],
   },
   {
@@ -681,7 +681,7 @@ Free from chapter 1 → ${BASE}/god-of-high-school`,
 
 800+ chapters of escalating chaos and the art just keeps getting BETTER.
 
-Read free → ${BASE}/god-of-high-school`,
+Read free → ${BASE}/browse?genre=Action`,
     tags: ['GodOfHighSchool', 'manhwa', 'anime'],
   },
 
@@ -693,7 +693,7 @@ Read free → ${BASE}/god-of-high-school`,
 
 Every chapter of Jin Kwan-Ho's journey is deliberate, cold, and absolutely devastating.
 
-Free → ${BASE}/northern-blade`,
+Free → ${BASE}/the-legend-of-the-northern-blade`,
     tags: ['NorthernBlade', 'manhwa', 'murim'],
   },
   {
@@ -704,7 +704,7 @@ No jokes. No speeches. No mercy.
 
 Just the last surviving member of a destroyed sect walking back into the martial world like a winter storm.
 
-Free → ${BASE}/northern-blade`,
+Free → ${BASE}/the-legend-of-the-northern-blade`,
     tags: ['NorthernBlade', 'manhwa'],
   },
   {
@@ -713,7 +713,7 @@ Free → ${BASE}/northern-blade`,
 
 Reads like a slow-burn thriller that explodes every 10 chapters.
 
-Free at MangVault → ${BASE}/northern-blade`,
+Free at MangVault → ${BASE}/the-legend-of-the-northern-blade`,
     tags: ['NorthernBlade', 'manhwa', 'murim'],
   },
 
@@ -756,14 +756,14 @@ Free at MangVault → ${BASE}/murim-login`,
 
 This time — no wasted years. No mercy. Pure preparation.
 
-Free → ${BASE}/sword-masters-youngest-son`,
+Free → ${BASE}/the-swordmasters-youngest-son`,
     tags: ['SwordMastersYoungestSon', 'manhwa'],
   },
   {
     id: 'smy-02',
     text: `Jin Runcandel going from "the failure of a legendary family" to the thing that legendary family fears is *exactly* the kind of story that keeps you up at night reading.
 
-Free → ${BASE}/sword-masters-youngest-son`,
+Free → ${BASE}/the-swordmasters-youngest-son`,
     tags: ['SwordMastersYoungestSon', 'manhwa'],
   },
   {
@@ -772,7 +772,7 @@ Free → ${BASE}/sword-masters-youngest-son`,
 
 The Cremation technique alone is worth reading 100 chapters for.
 
-Free → ${BASE}/sword-masters-youngest-son`,
+Free → ${BASE}/the-swordmasters-youngest-son`,
     tags: ['SwordMastersYoungestSon', 'manhwa'],
   },
 
@@ -841,7 +841,7 @@ Free at MangVault → ${BASE}/dungeon-reset`,
     id: 'rr-01',
     text: `Ranker's Return: The first player to clear a game dungeon was betrayed and left for dead. Three years later, he's back — and every player who wronged him is about to find out why you don't abandon the Ranker.
 
-Free → ${BASE}/rankers-return`,
+Free → ${BASE}/rankers-return-remake`,
     tags: ['RankersReturn', 'manhwa'],
   },
   {
@@ -850,7 +850,7 @@ Free → ${BASE}/rankers-return`,
 
 Ruthless efficiency. Zero hesitation. Maximum stats.
 
-Read free → ${BASE}/rankers-return`,
+Read free → ${BASE}/rankers-return-remake`,
     tags: ['RankersReturn', 'manhwa'],
   },
   {
@@ -860,7 +860,7 @@ Read free → ${BASE}/rankers-return`,
 • Insane game mechanics ✅
 • OP protagonist that still feels fallible ✅
 
-Free at MangVault → ${BASE}/rankers-return`,
+Free at MangVault → ${BASE}/rankers-return-remake`,
     tags: ['RankersReturn', 'manhwa'],
   },
 
@@ -872,7 +872,7 @@ Free at MangVault → ${BASE}/rankers-return`,
 
 He remembers everything. The martial arts world is not ready.
 
-Free → ${BASE}/heavenly-demon`,
+Free → ${BASE}/heavenly-demon-reborn`,
     tags: ['HeavenlyDemon', 'manhwa', 'murim'],
   },
   {
@@ -881,7 +881,7 @@ Free → ${BASE}/heavenly-demon`,
 
 It's not about getting stronger. It's about a god wearing human skin — and choosing when to stop pretending.
 
-Free → ${BASE}/heavenly-demon`,
+Free → ${BASE}/heavenly-demon-reborn`,
     tags: ['HeavenlyDemon', 'manhwa'],
   },
   {
@@ -890,7 +890,7 @@ Free → ${BASE}/heavenly-demon`,
 
 Incredible fight choreography. Deep lore. A protagonist who genuinely earned the title.
 
-Free at MangVault → ${BASE}/heavenly-demon`,
+Free at MangVault → ${BASE}/heavenly-demon-reborn`,
     tags: ['HeavenlyDemon', 'manhwa', 'murim'],
   },
 
@@ -923,14 +923,14 @@ Free → ${BASE}/reality-quest`,
 
 Now the monsters are coming to Earth — and he is not a player anymore. He is the endgame.
 
-Free → ${BASE}/max-level-returner`,
+Free → ${BASE}/the-max-level-returner`,
     tags: ['MaxLevelReturner', 'manhwa'],
   },
   {
     id: 'mlr-02',
     text: `Yoon Sang is coming back to a world that moved on without him — but the monsters coming to Earth are about to meet someone who never lost.
 
-Max Level Returner is elite. Free → ${BASE}/max-level-returner`,
+Max Level Returner is elite. Free → ${BASE}/the-max-level-returner`,
     tags: ['MaxLevelReturner', 'manhwa'],
   },
 
@@ -942,14 +942,14 @@ Max Level Returner is elite. Free → ${BASE}/max-level-returner`,
 
 The world moved on. It got weaker. And now he has to save it again — alone, because no one else is strong enough.
 
-Free → ${BASE}/hero-returns`,
+Free → ${BASE}/the-hero-returns`,
     tags: ['HeroReturns', 'manhwa'],
   },
   {
     id: 'hr-02',
     text: `Hero Returns is the manhwa that asks: what happens when the hero everyone forgot about has to do it all again?
 
-The answer is SPECTACULAR. Free → ${BASE}/hero-returns`,
+The answer is SPECTACULAR. Free → ${BASE}/the-hero-returns`,
     tags: ['HeroReturns', 'manhwa'],
   },
 
@@ -980,7 +980,7 @@ Free → ${BASE}/volcanic-age`,
 
 This time he's going to build something no one can destroy, and protect everyone he lost.
 
-Emotional and HYPE. Free → ${BASE}/regressed-mercenary`,
+Emotional and HYPE. Free → ${BASE}/the-regressed-mercenarys-machinations`,
     tags: ['RegressedMercenary', 'manhwa'],
   },
 
@@ -1011,7 +1011,7 @@ The Breaker. Free at MangVault → ${BASE}/the-breaker`,
 
 What if humans just... adapted? Built an economy around it?
 
-Then one man at level 999 starts over from scratch to understand why. Free → ${BASE}/lv999`,
+Then one man at level 999 starts over from scratch to understand why. Free → ${BASE}/browse`,
     tags: ['LV999', 'manhwa'],
   },
   {
@@ -1020,7 +1020,7 @@ Then one man at level 999 starts over from scratch to understand why. Free → $
 
 A max-level protagonist choosing to restart — not for power, but for understanding. The story that follows is exceptional.
 
-Free → ${BASE}/lv999`,
+Free → ${BASE}/browse`,
     tags: ['LV999', 'manhwa'],
   },
 
@@ -1053,14 +1053,14 @@ Wildly creative. Free → ${BASE}/absolute-sword-sense`,
 
 It's actually about a warrior who gave everything for a kingdom that abandoned him — and gets a second chance when his god believes in him when no one else did.
 
-Free → ${BASE}/suicidal-battle-god`,
+Free → ${BASE}/reincarnation-of-the-suicidal-battle-god`,
     tags: ['SuicidalBattleGod', 'manhwa'],
   },
   {
     id: 'sbg-02',
     text: `Zephyr (Suicidal Battle God) getting divine powers while every noble house underestimates him is the content I need every morning.
 
-Free at MangVault → ${BASE}/suicidal-battle-god`,
+Free at MangVault → ${BASE}/reincarnation-of-the-suicidal-battle-god`,
     tags: ['SuicidalBattleGod', 'manhwa'],
   },
 
@@ -1072,7 +1072,7 @@ Free at MangVault → ${BASE}/suicidal-battle-god`,
 
 The premise is hilarious. The execution is elite.
 
-Free → ${BASE}/pick-me-up`,
+Free → ${BASE}/pick-me-up-infinite-gacha`,
     tags: ['PickMeUp', 'manhwa'],
   },
   {
@@ -1081,7 +1081,7 @@ Free → ${BASE}/pick-me-up`,
 
 A max-difficulty player stuck being a 3-star unit in someone else's roster. The indignity. The COMEDY.
 
-Free → ${BASE}/pick-me-up`,
+Free → ${BASE}/pick-me-up-infinite-gacha`,
     tags: ['PickMeUp', 'manhwa'],
   },
 
@@ -1208,7 +1208,7 @@ Day 3: 170 chapters deep, questioning all previous life decisions
 
 Day 7: reading 4 series simultaneously on MangVault, no regrets
 
-→ https://tinyurl.com/26wjfxbw`,
+→ https://mangvault.com`,
     tags: ['manhwa', 'SoloLeveling', 'relatable'],
   },
   {
@@ -1235,7 +1235,7 @@ for ORV fans it's... look. you'll know when you get there. we don't talk about i
 
 I've told it 47 times in the last 6 hours
 
-MangVault is NOT responsible for your sleep schedule → https://tinyurl.com/26wjfxbw`,
+MangVault is NOT responsible for your sleep schedule → https://mangvault.com`,
     tags: ['manhwa', 'manga', 'relatable'],
   },
   {
