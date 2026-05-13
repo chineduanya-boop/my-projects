@@ -11,12 +11,16 @@
     "quote": "node quote-tweet.js",
     "generate": "node generate.js",
     "thread": "node thread.js --preview",
-    "start": "node scheduler.js"
+    "start": "node scheduler.js",
+    "fb:login": "node fb-login.js",
+    "fb:post": "node fb-scheduler.js --post-now",
+    "fb:start": "node fb-scheduler.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",
     "dotenv": "^16.4.5",
     "node-cron": "^3.0.3",
+    "playwright": "^1.60.0",
     "twitter-api-v2": "^1.18.2"
   }
 }
