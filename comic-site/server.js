@@ -1,4 +1,14 @@
 require('dotenv').config();
+
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+});
+
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -47,19 +57,24 @@ app.get('/admin/logout', (req, res) => {
   req.session.destroy(() => res.redirect('/'));
 });
 
+app.get('/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
+
 app.use('/api', require('./routes/comics'));
 app.use('/api/admin', requireAdmin, require('./routes/admin'));
 
 // ── Sitemap ───────────────────────────────────────────────────────────────────
 app.get('/sitemap.xml', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT id, slug, title, cover_image, updated_at FROM comics ORDER BY id');
+    const [comicsRes, chaptersRes] = await Promise.all([
+      pool.query('SELECT id, slug, title, cover_image, updated_at FROM comics ORDER BY id'),
+      pool.query('SELECT id, created_at FROM chapters ORDER BY id'),
+    ]);
     const urls = [
       `<url><loc>${SITE_URL}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
       `<url><loc>${SITE_URL}/browse</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`,
       `<url><loc>${SITE_URL}/browse?sort=views</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`,
       `<url><loc>${SITE_URL}/browse?sort=updated</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`,
-      ...rows.map(c => {
+      ...comicsRes.rows.map(c => {
         const loc = c.slug ? `${SITE_URL}/${c.slug}` : `${SITE_URL}/comic/${c.id}`;
         const date = c.updated_at ? new Date(c.updated_at).toISOString().split('T')[0] : '';
         const safeTitle = c.title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -67,6 +82,10 @@ app.get('/sitemap.xml', async (req, res) => {
           ? `<image:image><image:loc>${c.cover_image}</image:loc><image:title>${safeTitle}</image:title><image:caption>Read ${safeTitle} free online on MangVault</image:caption></image:image>`
           : '';
         return `<url><loc>${loc}</loc>${date ? `<lastmod>${date}</lastmod>` : ''}<changefreq>weekly</changefreq><priority>0.8</priority>${image}</url>`;
+      }),
+      ...chaptersRes.rows.map(ch => {
+        const date = ch.created_at ? new Date(ch.created_at).toISOString().split('T')[0] : '';
+        return `<url><loc>${SITE_URL}/reader/${ch.id}</loc>${date ? `<lastmod>${date}</lastmod>` : ''}<changefreq>never</changefreq><priority>0.6</priority></url>`;
       }),
     ];
     res.set('Content-Type', 'application/xml');
@@ -85,6 +104,19 @@ function esc(str) {
 const comicHtml  = fs.readFileSync(path.join(__dirname, 'public', 'comic.html'),  'utf8');
 const indexHtml  = fs.readFileSync(path.join(__dirname, 'public', 'index.html'),  'utf8');
 const browseHtml = fs.readFileSync(path.join(__dirname, 'public', 'browse.html'), 'utf8');
+
+// ── Cached most-popular cover (used as OG image fallback) ─────────────────────
+let _popularCover = null;
+let _popularCoverTs = 0;
+async function getPopularCover() {
+  if (_popularCover && Date.now() - _popularCoverTs < 5 * 60 * 1000) return _popularCover;
+  const { rows } = await pool.query(
+    "SELECT cover_image FROM comics WHERE cover_image IS NOT NULL AND cover_image <> '' ORDER BY views DESC LIMIT 1"
+  );
+  _popularCover = rows[0]?.cover_image || '';
+  _popularCoverTs = Date.now();
+  return _popularCover;
+}
 
 function formatDateSSR(str) {
   if (!str) return '';
@@ -169,7 +201,7 @@ async function serveComicPage(comic, comicId, req, res) {
   const desc = comic.description
     ? comic.description.slice(0, 155) + (comic.description.length > 155 ? '...' : '')
     : `Read ${comic.title} free online on MangVault. ${genres.slice(0, 3).join(', ')} comic.`;
-  const coverImage = comic.cover_image || '';
+  const coverImage = comic.cover_image || await getPopularCover();
 
   const metaTags = `
   <title>${esc(pageTitle)}</title>
@@ -277,7 +309,7 @@ app.get('/comic/:id', async (req, res) => {
   try {
     if (!/^\d+$/.test(req.params.id)) return res.redirect(301, '/');
     const { rows } = await pool.query(
-      'SELECT id, title, description, cover_image, author, genres, slug, is_adult FROM comics WHERE id = $1',
+      'SELECT id, title, description, cover_image, author, artist, status, views, genres, slug, is_adult FROM comics WHERE id = $1',
       [req.params.id]
     );
     if (!rows[0]) return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -313,6 +345,7 @@ app.get('/', async (req, res) => {
       ? allGenres.map(g => `<a href="/browse?genre=${encodeURIComponent(g)}" class="genre-tag-btn">${esc(g)}</a>`).join('')
       : '<p style="color:var(--text3)">No genres yet.</p>';
 
+    const popularCover = heroRes.rows.find(c => c.cover_image)?.cover_image || '';
     const html = indexHtml
       .replace('<!--SSR:heroSection-->',    ssrHero(heroRes.rows))
       .replace('<!--SSR:newReleasesRow-->', ssrRow(newRelRes.rows))
@@ -323,6 +356,7 @@ app.get('/', async (req, res) => {
       .replace('<!--SSR:mostViewedRow-->',  ssrRow(mostViewedRes.rows))
       .replace('<!--SSR:popularGrid-->',    ssrRow(popularRes.rows))
       .replace('<!--SSR:genreTags-->',      genreTagsHtml)
+      .replaceAll('__OG_IMAGE__',           esc(popularCover))
       .replace('</body>', '<script>window.HOME_SSR=true;</script>\n</body>');
 
     res.send(html);
@@ -355,10 +389,12 @@ app.get('/browse', async (req, res) => {
     const countText = `${total} comic${total !== 1 ? 's' : ''} found`;
     const gridHtml  = comicsRes.rows.length ? comicsRes.rows.map(ssrComicCard).join('') : '';
 
+    const popularCover = await getPopularCover();
     const html = browseHtml
       .replace('<!--SSR:browseTitle-->', esc(pageTitle))
       .replace('<!--SSR:browseCount-->', esc(countText))
       .replace('<!--SSR:browseGrid-->',  gridHtml)
+      .replaceAll('__OG_IMAGE__',        esc(popularCover))
       .replace('</body>', `<script>window.BROWSE_SSR=true;window.BROWSE_TOTAL=${total};window.BROWSE_LOADED=${comicsRes.rows.length};</script>\n</body>`);
 
     res.send(html);
@@ -375,7 +411,7 @@ app.get('/reader/:id', (req, res) => res.sendFile(path.join(__dirname, 'public',
 app.get('/:slug', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT id, title, description, cover_image, author, genres, slug, is_adult FROM comics WHERE slug = $1',
+      'SELECT id, title, description, cover_image, author, artist, status, views, genres, slug, is_adult FROM comics WHERE slug = $1',
       [req.params.slug]
     );
     if (!rows[0]) return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
