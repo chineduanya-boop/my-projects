@@ -65,27 +65,20 @@ app.use('/api/admin', requireAdmin, require('./routes/admin'));
 // ── Sitemap ───────────────────────────────────────────────────────────────────
 app.get('/sitemap.xml', async (req, res) => {
   try {
-    const [comicsRes, chaptersRes] = await Promise.all([
-      pool.query('SELECT id, slug, title, cover_image, updated_at FROM comics ORDER BY id'),
-      pool.query('SELECT id, created_at FROM chapters ORDER BY id'),
-    ]);
+    const comicsRes = await pool.query(
+      'SELECT id, slug, title, cover_image, updated_at FROM comics WHERE slug IS NOT NULL AND slug <> \'\' ORDER BY id'
+    );
     const urls = [
       `<url><loc>${SITE_URL}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
       `<url><loc>${SITE_URL}/browse</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`,
-      `<url><loc>${SITE_URL}/browse?sort=views</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`,
-      `<url><loc>${SITE_URL}/browse?sort=updated</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`,
       ...comicsRes.rows.map(c => {
-        const loc = c.slug ? `${SITE_URL}/${c.slug}` : `${SITE_URL}/comic/${c.id}`;
+        const loc = `${SITE_URL}/${c.slug}`;
         const date = c.updated_at ? new Date(c.updated_at).toISOString().split('T')[0] : '';
         const safeTitle = c.title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
         const image = c.cover_image
           ? `<image:image><image:loc>${c.cover_image}</image:loc><image:title>${safeTitle}</image:title><image:caption>Read ${safeTitle} free online on MangVault</image:caption></image:image>`
           : '';
         return `<url><loc>${loc}</loc>${date ? `<lastmod>${date}</lastmod>` : ''}<changefreq>weekly</changefreq><priority>0.8</priority>${image}</url>`;
-      }),
-      ...chaptersRes.rows.map(ch => {
-        const date = ch.created_at ? new Date(ch.created_at).toISOString().split('T')[0] : '';
-        return `<url><loc>${SITE_URL}/reader/${ch.id}</loc>${date ? `<lastmod>${date}</lastmod>` : ''}<changefreq>never</changefreq><priority>0.6</priority></url>`;
       }),
     ];
     res.set('Content-Type', 'application/xml');
@@ -312,7 +305,7 @@ app.get('/comic/:id', async (req, res) => {
       'SELECT id, title, description, cover_image, author, artist, status, views, genres, slug, is_adult FROM comics WHERE id = $1',
       [req.params.id]
     );
-    if (!rows[0]) return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+    if (!rows[0]) return res.status(404).send('<!DOCTYPE html><html><head><title>404 Not Found - MangVault</title><meta name="robots" content="noindex"></head><body><h1>404 - Page Not Found</h1><p>This comic does not exist.</p><a href="/">Go Home</a></body></html>');
     const comic = rows[0];
     if (comic.slug) return res.redirect(301, `/${comic.slug}`);
     // No slug yet — serve page directly
@@ -414,10 +407,10 @@ app.get('/:slug', async (req, res) => {
       'SELECT id, title, description, cover_image, author, artist, status, views, genres, slug, is_adult FROM comics WHERE slug = $1',
       [req.params.slug]
     );
-    if (!rows[0]) return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+    if (!rows[0]) return res.status(404).send('<!DOCTYPE html><html><head><title>404 Not Found - MangVault</title><meta name="robots" content="noindex"></head><body><h1>404 - Page Not Found</h1><p>This comic does not exist.</p><a href="/">Go Home</a></body></html>');
     await serveComicPage(rows[0], rows[0].id, req, res);
   } catch {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.status(500).send('<!DOCTYPE html><html><head><title>Error - MangVault</title><meta name="robots" content="noindex"></head><body><h1>Something went wrong</h1><a href="/">Go Home</a></body></html>');
   }
 });
 
