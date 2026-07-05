@@ -1,11 +1,18 @@
 const express = require('express');
 const router = express.Router();
+const https = require('https');
 const { pool, slugify } = require('../database/db');
 const { bustCache } = require('./comics');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
 const { S3Client } = require('@aws-sdk/client-s3');
 const path = require('path');
+
+const SITEMAP_URL = encodeURIComponent('https://mangvault.com/sitemap.xml');
+function pingSearchEngines() {
+  [`https://www.google.com/ping?sitemap=${SITEMAP_URL}`, `https://www.bing.com/ping?sitemap=${SITEMAP_URL}`]
+    .forEach(url => https.get(url, res => res.resume()).on('error', () => {}));
+}
 
 const s3 = new S3Client({
   region: 'auto',
@@ -91,6 +98,7 @@ router.post('/comics', uploadCover.single('cover'), async (req, res) => {
     `, [title, author || 'Unknown', artist || author || 'Unknown', description || '', coverImage, JSON.stringify(parsedGenres), status || 'Ongoing', featured ? 1 : 0, is_adult ? 1 : 0, slug]);
 
     bustCache();
+    pingSearchEngines();
     res.json({ id: rows[0].id, message: 'Comic created' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -160,6 +168,7 @@ router.post('/comics/:id/chapters', uploadPages.array('pages', 300), async (req,
     await client.query('COMMIT');
 
     bustCache();
+    pingSearchEngines();
     res.json({ id: chapterId, message: `Chapter ${chapter_number} added with ${req.files.length} pages` });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -186,6 +195,7 @@ router.post('/comics/:id/chapters/pdf', uploadPdf.single('pdf'), async (req, res
 
     await pool.query('UPDATE comics SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [req.params.id]);
     bustCache();
+    pingSearchEngines();
     res.json({ id: rows[0].id, message: `Chapter ${chapter_number} added as PDF` });
   } catch (err) {
     res.status(500).json({ error: err.message });
