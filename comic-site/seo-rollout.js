@@ -13,9 +13,10 @@
  *   node seo-rollout.js --off <slug>...   pull comics back out of the index
  *   node seo-rollout.js --all             index everything (final stage)
  *
- * Adult titles are included in --top and --all. See the note in README/commit history:
- * mixing adult titles into the main index can get the whole domain classified as
- * adult by SafeSearch, which suppresses every page for users who leave it on.
+ * Adult titles are never flagged by --top or --all, and are excluded from every
+ * server-rendered surface regardless of this flag. Indexing them risks Google
+ * classifying the whole domain as adult in SafeSearch, which would suppress the
+ * clean titles too.
  */
 require('dotenv').config();
 const { pool } = require('./database/db');
@@ -63,7 +64,7 @@ async function setFlag(slugs, value) {
 
 async function top(n) {
   const { rows } = await pool.query(`
-    SELECT slug FROM comics c
+    SELECT slug FROM comics c WHERE c.is_adult = 0
     ORDER BY (SELECT COUNT(DISTINCT chapter_number) FROM chapters WHERE comic_id = c.id) DESC
     LIMIT $1`, [n]);
   await setFlag(rows.map(r => r.slug), 1);
@@ -72,7 +73,7 @@ async function top(n) {
 (async () => {
   if (has('--status') || argv.length === 0) await status();
   else if (has('--top'))  { await top(parseInt(valuesAfter('--top')[0] || '20', 10)); await status(); }
-  else if (has('--all'))  { const { rowCount } = await pool.query('UPDATE comics SET seo_indexed = 1'); console.log(`Indexed all ${rowCount} comics.`); await status(); }
+  else if (has('--all'))  { const { rowCount } = await pool.query('UPDATE comics SET seo_indexed = 1 WHERE is_adult = 0'); console.log(`Indexed all ${rowCount} non-adult comics.`); await status(); }
   else if (has('--on'))   { await setFlag(valuesAfter('--on'), 1); }
   else if (has('--off'))  { await setFlag(valuesAfter('--off'), 0); }
   else console.error('Unknown flag. See the header of this file for usage.');
