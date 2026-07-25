@@ -1008,6 +1008,33 @@ input[type="checkbox"]:checked ~ .toggle-switch::after { transform: translateX(1
 
 .chapters-section .load-more-btn { width: 100%; margin-top: 12px; }
 
+/* Compact archive of every chapter. Exists for two reasons: readers of a 648-chapter
+   series want to jump anywhere directly, and it keeps every chapter one click from the
+   comic page. Paginating the main list alone pushed mid-series chapters ~37 link-hops
+   deep, which Google reads as low importance. Plain numbered anchors cost ~30 KB for
+   648 chapters, against ~220 KB for the same chapters as full rows. */
+.chapter-archive { margin-top: 40px; }
+.chapter-archive h2 {
+  font-size: 17px; font-weight: 700; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.chapter-archive-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 6px;
+  max-height: 320px; overflow-y: auto;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px;
+}
+.chapter-archive-grid a {
+  text-align: center; padding: 7px 4px; border-radius: 5px;
+  background: var(--card); border: 1px solid var(--border);
+  font-size: 12px; font-weight: 600; color: var(--text2);
+}
+.chapter-archive-grid a:hover { border-color: var(--red); color: var(--red); background: var(--card-hover); }
+
+@media (max-width: 600px) {
+  .chapter-archive-grid { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); max-height: 260px; }
+}
+
 @media (max-width: 600px) {
   .chapter-jump-box { flex: 1 1 100%; }
   .chapter-order-btn { flex: 1 1 100%; justify-content: center; }

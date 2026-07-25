@@ -241,7 +241,7 @@ function errorHtml(heading, body = '') {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${esc(heading)} - MangVault</title><meta name="robots" content="noindex, follow" />
-<link rel="stylesheet" href="/css/style.css?v=17" /></head>
+<link rel="stylesheet" href="/css/style.css?v=18" /></head>
 <body style="display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center">
 <div><h1 style="font-size:28px;margin-bottom:12px">${esc(heading)}</h1>
 <p style="color:#9ca3af;margin-bottom:20px">${esc(body)}</p>
@@ -581,6 +581,13 @@ async function serveComicPage(comic, comicId, req, res) {
       <p class="chapter-empty" id="chapterEmpty" hidden>No chapters match that filter.</p>
       ${chapters.length > SSR_CHAPTERS ? `<button type="button" id="chapterMore" class="load-more-btn">Show more chapters</button>` : ''}
     </div>
+    ${chapters.length > SSR_CHAPTERS ? `
+    <nav class="chapter-archive" aria-label="All chapters">
+      <h2><span class="accent-bar"></span> All Chapters</h2>
+      <div class="chapter-archive-grid">${
+        newestFirst.map(ch => `<a href="${chapterUrl(slug, ch.chapter_number)}">${ch.chapter_number}</a>`).join('')
+      }</div>
+    </nav>` : ''}
     <script type="application/json" id="chapterData">${chapterData.replace(/</g, '\\u003c')}</script>`;
 
   const html = comicHtml
