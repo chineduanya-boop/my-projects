@@ -6,12 +6,17 @@ Disallow: /admin/
 Disallow: /api/
 Disallow: /uploads/
 
-# Legacy numeric chapter URLs — these 301 to /:slug/chapter-:num.
-# Blocking them keeps the redirect hop out of the crawl budget.
-Disallow: /reader/
-Disallow: /comic/
+# /reader/:id and /comic/:id are legacy URLs that now 301 to /:slug/chapter-:num
+# and /:slug. They are deliberately LEFT CRAWLABLE.
+#
+# Blocking them looked like it saved crawl budget, but it stranded them: Search Console
+# showed 149 /reader/* URLs stuck at "Excluded by 'noindex' tag", crawled back when they
+# still carried that tag. A disallowed URL is never re-fetched, so Google never sees the
+# redirect and never moves those signals to the new chapter URLs. A 301 can only do its
+# job if the old URL can still be fetched. Once they have been recrawled and consolidated
+# these lines could return, but there is little reason to add them back.
 
-# Faceted /browse?sort= and ?genre= URLs are left crawlable on purpose:
+# Faceted /browse?sort= and ?genre= URLs are left crawlable for the same reason:
 # browse.html self-canonicalises to /browse, and Google can only read that
 # canonical if it is allowed to fetch the page. Blocking them would strand
 # the duplicates instead of consolidating them.
