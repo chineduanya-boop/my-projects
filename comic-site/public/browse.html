@@ -55,7 +55,7 @@
   </script>
   <!--/SSR:head-->
 
-  <link rel="stylesheet" href="/css/style.css?v=14" />
+  <link rel="stylesheet" href="/css/style.css?v=17" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
 <body>
@@ -78,6 +78,7 @@
           <input type="text" id="searchInput" placeholder="Search comics..." class="search-input" />
           <button type="submit" class="search-btn"><i class="fa fa-search"></i></button>
         </form>
+        <button type="button" class="adult-toggle" id="adultToggle" aria-pressed="false" title="Show 18+ titles"><i class="fa fa-eye-slash"></i><span>18+</span></button>
         <a href="/admin" class="admin-link"><i class="fa fa-upload"></i><span> Upload</span></a>
         <button class="hamburger" id="hamburger"><i class="fa fa-bars"></i></button>
       </div>
@@ -148,6 +149,7 @@
     </div>
   </footer>
 
-  <script src="/js/browse.js?v=9"></script>
+  <script src="/js/adult.js?v=2"></script>
+  <script src="/js/browse.js?v=10"></script>
 </body>
 </html>

@@ -893,6 +893,126 @@ input[type="checkbox"]:checked ~ .toggle-switch::after { transform: translateX(1
   .context-comic-cover { flex: none; }
 }
 
+/* ===== ADULT CONTENT TOGGLE ===== */
+.adult-toggle {
+  display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 11px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg3); color: var(--text3);
+  font-size: 12px; font-weight: 700; letter-spacing: 0.3px;
+}
+.adult-toggle:hover { border-color: var(--text2); color: var(--text2); }
+.adult-toggle.is-on { background: var(--red); border-color: var(--red); color: #fff; }
+.adult-toggle i { font-size: 12px; }
+
+/* Adult covers arrive blurred so an accidental toggle is not jarring; hovering or
+   focusing the card reveals them. */
+.adult-blur { filter: blur(14px); transition: filter 0.18s; }
+.comic-card:hover .adult-blur,
+.comic-card:focus-within .adult-blur { filter: none; }
+
+.comic-card-cover { position: relative; }
+.adult-badge {
+  position: absolute; top: 6px; left: 6px; z-index: 2;
+  background: var(--red); color: #fff; font-size: 10px; font-weight: 800;
+  padding: 2px 6px; border-radius: 4px; letter-spacing: 0.4px;
+}
+
+/* Interstitial on an adult title's own page */
+.adult-gate {
+  position: fixed; inset: 0; z-index: 998; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.adult-gate-inner {
+  max-width: 420px; text-align: center;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 32px 28px; box-shadow: var(--shadow);
+}
+.adult-gate-inner i { font-size: 34px; color: var(--red); margin-bottom: 14px; }
+.adult-gate-inner h2 { font-size: 19px; margin-bottom: 10px; }
+.adult-gate-inner p { color: var(--text2); font-size: 14px; margin-bottom: 22px; }
+.adult-gate-actions { display: flex; gap: 10px; }
+.adult-gate-actions a, .adult-gate-actions button {
+  flex: 1; padding: 11px; border-radius: var(--radius); font-size: 14px; font-weight: 600;
+  border: 1px solid var(--border); color: var(--text2); background: var(--bg3);
+}
+.adult-gate-actions .confirm { background: var(--red); border-color: var(--red); color: #fff; }
+
+@media (max-width: 700px) { .adult-toggle span { display: none; } }
+
+/* ===== KEYBOARD SHORTCUT OVERLAY ===== */
+.kb-help {
+  position: fixed; inset: 0; z-index: 999;
+  background: rgba(0,0,0,0.72); display: flex; align-items: center; justify-content: center;
+}
+.kb-help-inner {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 26px 30px; min-width: 300px; box-shadow: var(--shadow);
+}
+.kb-help-inner h3 { font-size: 17px; margin-bottom: 16px; }
+.kb-help-inner dl { display: grid; grid-template-columns: auto 1fr; gap: 10px 18px; align-items: center; }
+.kb-help-inner dd { color: var(--text2); font-size: 14px; }
+.kb-help-inner kbd {
+  background: var(--bg3); border: 1px solid var(--border); border-bottom-width: 2px;
+  border-radius: 5px; padding: 3px 9px; font-family: inherit; font-size: 12px; font-weight: 600;
+}
+.kb-help-inner button {
+  margin-top: 20px; width: 100%; padding: 9px; border-radius: var(--radius);
+  background: var(--red); color: #fff; font-weight: 600; font-size: 14px;
+}
+.kb-help-inner button:hover { background: var(--red-dark); }
+
+/* ===== CONTINUE READING ===== */
+.continue-row .comic-card-cover::after {
+  content: attr(data-progress);
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.85));
+  color: #fff; font-size: 11px; font-weight: 600; padding: 14px 8px 6px; text-align: center;
+}
+
+/* ===== CHAPTER LIST TOOLS ===== */
+/* Long-running series have hundreds of chapters; these controls are the difference
+   between a usable list and an endless scroll. */
+.chapter-tools { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.chapter-jump-box, .chapter-filter-box {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 0 12px; height: 40px;
+}
+.chapter-filter-box { flex: 1 1 200px; }
+.chapter-jump-box { flex: 0 0 170px; }
+.chapter-jump-box i, .chapter-filter-box i { color: var(--text3); font-size: 13px; }
+.chapter-tools input {
+  background: none; border: none; outline: none; color: var(--text);
+  font-size: 14px; width: 100%; height: 100%;
+}
+.chapter-tools input::placeholder { color: var(--text3); }
+.chapter-tools input::-webkit-outer-spin-button,
+.chapter-tools input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.chapter-tools input[type=number] { -moz-appearance: textfield; }
+.chapter-jump-box:focus-within, .chapter-filter-box:focus-within { border-color: var(--red); }
+
+.chapter-order-btn {
+  display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--text2); font-size: 13px; font-weight: 600; white-space: nowrap;
+}
+.chapter-order-btn:hover { border-color: var(--red); color: var(--red); }
+
+.chapter-empty { padding: 28px; text-align: center; color: var(--text3); font-size: 14px; }
+.chapter-last-read {
+  font-size: 11px; font-weight: 700; color: var(--red);
+  border: 1px solid var(--red); border-radius: 999px; padding: 2px 8px;
+}
+.chapter-item.is-current { border-color: var(--red); background: var(--card-hover); }
+.btn-read.is-continue { background: var(--red-dark); }
+
+.chapters-section .load-more-btn { width: 100%; margin-top: 12px; }
+
+@media (max-width: 600px) {
+  .chapter-jump-box { flex: 1 1 100%; }
+  .chapter-order-btn { flex: 1 1 100%; justify-content: center; }
+}
+
 /* Home page H1 — present for semantics and screen readers, sized to sit quietly
    above the hero rather than compete with it. */
 .home-h1 {

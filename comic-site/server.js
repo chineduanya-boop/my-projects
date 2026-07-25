@@ -1,4 +1,4 @@
-require('dotenv').config();
+﻿require('dotenv').config();
 
 process.on('uncaughtException', (err) => {
   console.error('[uncaughtException]', err);
@@ -34,17 +34,17 @@ app.use(session({
 }));
 // index: false is load-bearing. express.static otherwise answers "/" with the raw
 // public/index.html before the SSR route below ever runs, which served Google an
-// empty shell — no hero, no comic cards, no <h1>.
+// empty shell â€” no hero, no comic cards, no <h1>.
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h', index: false }));
 
-// ── Auth middleware ───────────────────────────────────────────────────────────
+// â”€â”€ Auth middleware â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function requireAdmin(req, res, next) {
   if (req.session && req.session.isAdmin) return next();
   if (req.path.startsWith('/api')) return res.status(401).json({ error: 'Unauthorized' });
   res.redirect('/admin/login');
 }
 
-// ── Login / Logout ────────────────────────────────────────────────────────────
+// â”€â”€ Login / Logout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.get('/admin/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 
 app.post('/admin/login', (req, res) => {
@@ -65,7 +65,7 @@ app.get('/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime
 app.use('/api', require('./routes/comics'));
 app.use('/api/admin', requireAdmin, require('./routes/admin'));
 
-// ── Sitemaps ──────────────────────────────────────────────────────────────────
+// â”€â”€ Sitemaps â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // A sitemap index rather than one flat file: chapter URLs run into five figures and
 // a single sitemap is capped at 50,000 URLs / 50 MB. Only comics flagged seo_indexed
 // contribute chapter URLs, which is what makes the staged rollout controllable.
@@ -115,6 +115,7 @@ app.get('/sitemap.xml', async (req, res) => {
       const maps = [
         `${SITE_URL}/sitemap-comics.xml`,
         `${SITE_URL}/sitemap-genres.xml`,
+        `${SITE_URL}/sitemap-mature.xml`,
         ...Array.from({ length: pages }, (_, i) => `${SITE_URL}/sitemap-chapters-${i + 1}.xml`),
       ];
       return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${
@@ -150,6 +151,28 @@ app.get('/sitemap-comics.xml', async (req, res) => {
     });
   } catch (err) {
     console.error('[sitemap comics]', err.message);
+    res.status(500).send('Error generating sitemap');
+  }
+});
+
+// Adult book URLs live in their own sitemap rather than sitemap-comics.xml. They are
+// submitted so the titles stay findable by name, but kept out of the main file so the
+// clean catalogue's sitemap carries no adult signal. No cover <image:image> entries
+// here â€” that pairs with max-image-preview:none on the pages themselves.
+app.get('/sitemap-mature.xml', async (req, res) => {
+  try {
+    await sendXml(res, 'mature', async () => {
+      const { rows } = await pool.query(
+        `SELECT slug, updated_at FROM comics
+         WHERE is_adult = 1 AND slug IS NOT NULL AND slug <> '' ORDER BY views DESC`
+      );
+      return urlset(rows.map(c => {
+        const date = isoDay(c.updated_at);
+        return `<url><loc>${SITE_URL}/${c.slug}</loc>${date ? `<lastmod>${date}</lastmod>` : ''}<changefreq>weekly</changefreq><priority>0.4</priority></url>`;
+      }));
+    });
+  } catch (err) {
+    console.error('[sitemap mature]', err.message);
     res.status(500).send('Error generating sitemap');
   }
 });
@@ -197,7 +220,7 @@ app.get('/sitemap-chapters-:page.xml', async (req, res) => {
   }
 });
 
-// ── Helper: escape HTML attribute values ──────────────────────────────────────
+// â”€â”€ Helper: escape HTML attribute values â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function esc(str) {
   return (str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -212,13 +235,13 @@ function jsonStr(str) {
 const STATUS_CLASS = { Ongoing: 'status-ongoing', Completed: 'status-completed', Hiatus: 'status-hiatus' };
 const statusClassFor = (s) => STATUS_CLASS[s] || 'status-ongoing';
 
-// ── Error pages ───────────────────────────────────────────────────────────────
-// Always noindex — soft 404s and indexed error pages are a common crawl-budget sink.
+// â”€â”€ Error pages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Always noindex â€” soft 404s and indexed error pages are a common crawl-budget sink.
 function errorHtml(heading, body = '') {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${esc(heading)} - MangVault</title><meta name="robots" content="noindex, follow" />
-<link rel="stylesheet" href="/css/style.css?v=14" /></head>
+<link rel="stylesheet" href="/css/style.css?v=17" /></head>
 <body style="display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center">
 <div><h1 style="font-size:28px;margin-bottom:12px">${esc(heading)}</h1>
 <p style="color:#9ca3af;margin-bottom:20px">${esc(body)}</p>
@@ -228,10 +251,10 @@ function errorHtml(heading, body = '') {
 const send404 = (res) =>
   res.status(404).send(errorHtml('404 - Page Not Found', 'This page does not exist or has been removed.'));
 
-// ── SERP-fit helpers ──────────────────────────────────────────────────────────
+// â”€â”€ SERP-fit helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Google truncates titles around 60 characters and descriptions around 160. Long
 // series names ("The Great Mage Returns After 4000 Years") blow past that once a
-// suffix is appended, so drop to a shorter suffix instead of cutting the title —
+// suffix is appended, so drop to a shorter suffix instead of cutting the title â€”
 // the title is the part carrying the keyword.
 const TITLE_MAX = 60;
 function fitTitle(core, suffixes) {
@@ -244,10 +267,10 @@ function fitDesc(str, max = 160) {
   if (s.length <= max) return s;
   const cut = s.slice(0, max - 1);
   const sp = cut.lastIndexOf(' ');
-  return (sp > max * 0.6 ? cut.slice(0, sp) : cut).replace(/[,.;:\s]+$/, '') + '…';
+  return (sp > max * 0.6 ? cut.slice(0, sp) : cut).replace(/[,.;:\s]+$/, '') + 'â€¦';
 }
 
-// ── Chapter URL helpers ───────────────────────────────────────────────────────
+// â”€â”€ Chapter URL helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // chapter_number is REAL: 512 -> "512", 43.5 -> "43-5". A dot is legal in a URL path
 // but reads as a file extension to some crawlers and log parsers, so we canonicalise
 // to a dash and still accept the dotted form on the way in.
@@ -264,7 +287,18 @@ function parseChapterSlugPart(part) {
 
 const chapterUrl = (slug, num) => `/${slug}/chapter-${chapterSlugPart(num)}`;
 
-// ── Adult content containment ─────────────────────────────────────────────────
+// How many chapters the comic page renders as HTML. Tower of God has 648, which dumped
+// 267 KB into every response and left no way to reach chapter 400 but scrolling. The
+// remainder ship as a compact JSON payload that comic.js filters and pages. The rendered
+// slice stays real <a href>, so crawlable internal linking survives â€” and the
+// nearby-chapter block in serveChapterPage already covers deeper discovery.
+const SSR_CHAPTERS = 60;
+
+// Upload scripts often set title to a redundant "Chapter 12"; treat that as no title.
+const cleanChapterTitle = (ch) =>
+  ch.title && !/^chapter\s*[\d.]+$/i.test(ch.title.trim()) ? ch.title : '';
+
+// â”€â”€ Adult content containment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Adult titles are excluded from every server-rendered surface, not just from the
 // sitemaps. Their names alone ("Father's Lust", "Sexual Exploits") are enough for
 // Google to classify the *containing* page as adult, and the home page, browse grid
@@ -275,7 +309,7 @@ const chapterUrl = (slug, num) => `/${slug}/chapter-${chapterSlugPart(num)}`;
 // ?adult=1 / ?adult=all for client-side browsing.
 const SAFE = 'c.is_adult = 0';
 
-// ── Genre helpers ─────────────────────────────────────────────────────────────
+// â”€â”€ Genre helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const genreSlug = (g) => g.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
 // A genre needs a real shelf behind it to deserve an indexable landing page;
@@ -286,7 +320,7 @@ let _genreMap = null;
 let _genreMapTs = 0;
 async function getGenreMap() {
   if (_genreMap && Date.now() - _genreMapTs < 5 * 60 * 1000) return _genreMap;
-  // Adult titles must not contribute to genre counts, copy or schema — those strings
+  // Adult titles must not contribute to genre counts, copy or schema â€” those strings
   // render on indexed pages.
   const { rows } = await pool.query('SELECT genres FROM comics c WHERE ' + SAFE);
   const counts = new Map();
@@ -309,12 +343,12 @@ async function genreNavHtml() {
     .join('');
 }
 
-// ── Static HTML templates (read once at startup) ──────────────────────────────
+// â”€â”€ Static HTML templates (read once at startup) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const comicHtml  = fs.readFileSync(path.join(__dirname, 'public', 'comic.html'),  'utf8');
 const indexHtml  = fs.readFileSync(path.join(__dirname, 'public', 'index.html'),  'utf8');
 const browseHtml = fs.readFileSync(path.join(__dirname, 'public', 'browse.html'), 'utf8');
 
-// ── Cached most-popular cover (used as OG image fallback) ─────────────────────
+// â”€â”€ Cached most-popular cover (used as OG image fallback) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let _popularCover = null;
 let _popularCoverTs = 0;
 async function getPopularCover() {
@@ -333,7 +367,7 @@ function formatDateSSR(str) {
   return new Date(str).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-// ── SSR helpers: mirror the client-side card/hero builders ────────────────────
+// â”€â”€ SSR helpers: mirror the client-side card/hero builders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ssrComicCard(c) {
   const cover = c.cover_image
     ? `<img src="${esc(c.cover_image)}" alt="${esc(c.title)}" loading="lazy" />`
@@ -398,7 +432,7 @@ async function serveComicPage(comic, comicId, req, res) {
   // Count this page view (comic.js skips the API call on SSR pages)
   pool.query('UPDATE comics SET views = views + 1 WHERE id = $1', [comic.id]).catch(() => {});
 
-  // Fetch chapters for SSR — Google needs real content in the initial HTML.
+  // Fetch chapters for SSR â€” Google needs real content in the initial HTML.
   // getChapterList deduplicates, so the page can't list the same chapter four times.
   const chapters = await getChapterList(comic.id);
 
@@ -415,7 +449,13 @@ async function serveComicPage(comic, comicId, req, res) {
   <title>${esc(pageTitle)}</title>
   <meta name="description" content="${esc(desc)}" />
   <meta name="keywords" content="${esc([comic.title, comic.author, ...genres, 'read free', 'manga', 'manhua', 'manhwa', 'MangVault'].join(', '))}" />
-  <meta name="robots" content="${comic.is_adult ? 'noindex, nofollow' : 'index, follow, max-image-preview:large'}" />
+  <!-- Adult book pages ARE indexable: people search these titles by name, and the
+       protection for the clean catalogue comes from keeping them off the home, browse
+       and genre pages (the SAFE predicate), not from hiding the book page itself.
+       max-image-preview:none is the important part â€” it keeps explicit cover art out
+       of search result thumbnails and Google Images, which is the strongest adult
+       signal a page can emit. Their chapter pages stay noindex. -->
+  <meta name="robots" content="${comic.is_adult ? 'index, follow, max-image-preview:none' : 'index, follow, max-image-preview:large'}" />
   <link rel="canonical" href="${canonicalUrl}" />
   <meta property="og:type" content="book" />
   <meta property="og:url" content="${canonicalUrl}" />
@@ -454,9 +494,18 @@ async function serveComicPage(comic, comicId, req, res) {
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#e53935" />
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
-  <script>window.COMIC_ID = ${comicId}; window.COMIC_IS_ADULT = ${comic.is_adult ? 1 : 0}; window.COMIC_SSR = true;</script>`;
+  <script>
+    window.COMIC_ID = ${comicId};
+    window.COMIC_SLUG = ${JSON.stringify(slug)};
+    window.COMIC_TITLE = ${JSON.stringify(comic.title)};
+    window.COMIC_COVER = ${JSON.stringify(coverImage || '')};
+    window.COMIC_IS_ADULT = ${comic.is_adult ? 1 : 0};
+    window.COMIC_CHAPTER_TOTAL = ${chapters.length};
+    window.COMIC_SSR_CHAPTERS = ${SSR_CHAPTERS};
+    window.COMIC_SSR = true;
+  </script>`;
 
-  // ── Build SSR body content (mirrors comic.js) so Google sees real content ──
+  // â”€â”€ Build SSR body content (mirrors comic.js) so Google sees real content â”€â”€
   const statusClass = statusClassFor(comic.status);
   const firstChapter = chapters[0];
   const lastChapter  = chapters[chapters.length - 1];
@@ -465,13 +514,14 @@ async function serveComicPage(comic, comicId, req, res) {
     ? `<img src="${esc(coverImage)}" alt="${esc(comic.title)}" />`
     : `<div class="no-cover"><i class="fa fa-book-open fa-3x"></i></div>`;
 
+  const newestFirst = [...chapters].reverse();
   const chapterListHtml = chapters.length
-    ? [...chapters].reverse().map(ch => {
-        const t = ch.title && !/^chapter\s*[\d.]+$/i.test(ch.title.trim()) ? ` - ${esc(ch.title)}` : '';
+    ? newestFirst.slice(0, SSR_CHAPTERS).map(ch => {
+        const t = cleanChapterTitle(ch);
         return `
-        <a class="chapter-item" href="${chapterUrl(slug, ch.chapter_number)}">
+        <a class="chapter-item" href="${chapterUrl(slug, ch.chapter_number)}" data-num="${ch.chapter_number}">
           <div class="chapter-item-left">
-            <span class="chapter-item-num">Chapter ${ch.chapter_number}${t}</span>
+            <span class="chapter-item-num">Chapter ${ch.chapter_number}${t ? ` - ${esc(t)}` : ''}</span>
           </div>
           <div class="chapter-item-right">
             <span class="chapter-item-date">${formatDateSSR(ch.created_at)}</span>
@@ -480,6 +530,29 @@ async function serveComicPage(comic, comicId, req, res) {
         </a>`;
       }).join('')
     : `<div style="color:var(--text3);padding:24px;text-align:center"><i class="fa fa-clock" style="font-size:32px;margin-bottom:12px"></i><p>No chapters uploaded yet.</p></div>`;
+
+  // [number, title, dateMs] tuples rather than objects â€” roughly a third of the bytes
+  // across 648 chapters, and comic.js expands them on load.
+  const chapterData = JSON.stringify(newestFirst.map(ch => [
+    Number(ch.chapter_number),
+    cleanChapterTitle(ch),
+    ch.created_at ? new Date(ch.created_at).getTime() : 0,
+  ]));
+
+  const chapterToolbar = chapters.length > SSR_CHAPTERS ? `
+      <div class="chapter-tools">
+        <div class="chapter-jump-box">
+          <i class="fa fa-hashtag"></i>
+          <input type="number" id="chapterJump" placeholder="Go to chapterâ€¦" min="1" aria-label="Jump to chapter number" />
+        </div>
+        <div class="chapter-filter-box">
+          <i class="fa fa-magnifying-glass"></i>
+          <input type="search" id="chapterFilter" placeholder="Filter chaptersâ€¦" aria-label="Filter chapters" />
+        </div>
+        <button type="button" id="chapterOrder" class="chapter-order-btn" aria-label="Reverse chapter order">
+          <i class="fa fa-arrow-down-wide-short"></i> <span>Newest</span>
+        </button>
+      </div>` : '';
 
   const ssrBody = `
     <div class="comic-detail-hero">
@@ -503,21 +576,28 @@ async function serveComicPage(comic, comicId, req, res) {
     </div>
     <div class="chapters-section">
       <h2><span class="accent-bar"></span> Chapters <span style="font-size:14px;color:var(--text3);font-weight:400">(${chapters.length})</span></h2>
-      <div class="chapter-list">${chapterListHtml}</div>
-    </div>`;
+      ${chapterToolbar}
+      <div class="chapter-list" id="chapterList">${chapterListHtml}</div>
+      <p class="chapter-empty" id="chapterEmpty" hidden>No chapters match that filter.</p>
+      ${chapters.length > SSR_CHAPTERS ? `<button type="button" id="chapterMore" class="load-more-btn">Show more chapters</button>` : ''}
+    </div>
+    <script type="application/json" id="chapterData">${chapterData.replace(/</g, '\\u003c')}</script>`;
 
   const html = comicHtml
-    .replace('<title>Comic - MangVault</title>', '')
+    // Replace the whole placeholder line, not just the <title>. The static file also
+    // carries a `robots: index, follow` tag; leaving it in emitted TWO robots metas per
+    // page, and on adult titles the stray one contradicted max-image-preview:none.
+    .replace(/<!--SSR:head-->.*/, '')
     .replace('</head>', metaTags + '\n</head>')
     .replace('<div class="detail-loading"><i class="fa fa-spinner fa-spin fa-2x"></i></div>', ssrBody);
 
   res.send(html);
 }
 
-// ── Chapter list, deduplicated and cached ─────────────────────────────────────
+// â”€â”€ Chapter list, deduplicated and cached â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // 133 (comic_id, chapter_number) groups currently hold duplicate rows from
-// concurrent upload runs. DISTINCT ON collapses each to a single canonical row —
-// highest views first so engagement is preserved, lowest id as a stable tiebreak —
+// concurrent upload runs. DISTINCT ON collapses each to a single canonical row â€”
+// highest views first so engagement is preserved, lowest id as a stable tiebreak â€”
 // which keeps one chapter number mapped to exactly one URL.
 const _chapterListCache = new Map();
 async function getChapterList(comicId) {
@@ -552,7 +632,7 @@ async function serveChapterPage(comic, chapter, chapters, req, res) {
 
   pool.query('UPDATE chapters SET views = views + 1 WHERE id = $1', [chapter.id]).catch(() => {});
 
-  // Staged rollout gate, plus a hard adult exclusion — see the SAFE note above.
+  // Staged rollout gate, plus a hard adult exclusion â€” see the SAFE note above.
   const indexable = comic.seo_indexed === 1 && !comic.is_adult;
 
   // A distinct chapter title (not just "Chapter 12") is worth putting in the <title>.
@@ -620,10 +700,15 @@ async function serveChapterPage(comic, chapter, chapters, req, res) {
   <script>
     window.CHAPTER_ID = ${chapter.id};
     window.CHAPTER_PDF = ${JSON.stringify(chapter.pdf_url || '')};
+    window.CHAPTER_SLUG = ${JSON.stringify(comic.slug)};
+    window.CHAPTER_NUMBER = ${num};
+    window.CHAPTER_COMIC_TITLE = ${JSON.stringify(comic.title)};
+    window.CHAPTER_COVER = ${JSON.stringify(coverImage || '')};
+    window.CHAPTER_IS_ADULT = ${comic.is_adult ? 1 : 0};
     window.CHAPTER_SSR = true;
   </script>`;
 
-  // ── Crawlable navigation ────────────────────────────────────────────────────
+  // â”€â”€ Crawlable navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const navLink = (ch, dir, cls) => ch
     ? `<a href="${chapterUrl(comic.slug, ch.chapter_number)}" class="${cls}" rel="${dir}" title="Chapter ${ch.chapter_number}">${
         dir === 'prev' ? '<i class="fa fa-chevron-left"></i>' : ''}${
@@ -674,7 +759,7 @@ async function serveChapterPage(comic, chapter, chapters, req, res) {
           <span><i class="fa fa-book"></i> ${total} chapters</span>
           <span><i class="fa fa-circle-notch"></i> ${esc(comic.status || 'Ongoing')}</span>
         </div>
-        <p class="context-comic-desc">${esc((comic.description || '').slice(0, 260))}${(comic.description || '').length > 260 ? '…' : ''}</p>
+        <p class="context-comic-desc">${esc((comic.description || '').slice(0, 260))}${(comic.description || '').length > 260 ? 'â€¦' : ''}</p>
         ${genres.length ? `<div class="context-genres">${genres.map(g => `<a href="/genre/${genreSlug(g)}">${esc(g)}</a>`).join('')}</div>` : ''}
       </div>
     </div>
@@ -701,7 +786,7 @@ async function serveChapterPage(comic, chapter, chapters, req, res) {
   res.send(html);
 }
 
-// ── /:slug/chapter-:num — SEO chapter URLs ────────────────────────────────────
+// â”€â”€ /:slug/chapter-:num â€” SEO chapter URLs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.get('/:slug/chapter-:num', async (req, res, next) => {
   try {
     const num = parseChapterSlugPart(req.params.num);
@@ -731,7 +816,7 @@ app.get('/:slug/chapter-:num', async (req, res, next) => {
   }
 });
 
-// ── /reader/:id — legacy numeric chapter URLs, 301 to the SEO URL ─────────────
+// â”€â”€ /reader/:id â€” legacy numeric chapter URLs, 301 to the SEO URL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.get('/reader/:id', async (req, res) => {
   try {
     if (!/^\d+$/.test(req.params.id)) return res.redirect(301, '/');
@@ -748,7 +833,7 @@ app.get('/reader/:id', async (req, res) => {
   }
 });
 
-// ── /comic/:id — redirect numeric IDs to slug URL ────────────────────────────
+// â”€â”€ /comic/:id â€” redirect numeric IDs to slug URL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.get('/comic/:id', async (req, res) => {
   try {
     if (!/^\d+$/.test(req.params.id)) return res.redirect(301, '/');
@@ -759,24 +844,26 @@ app.get('/comic/:id', async (req, res) => {
     if (!rows[0]) return send404(res);
     const comic = rows[0];
     if (comic.slug) return res.redirect(301, `/${comic.slug}`);
-    // No slug yet — serve page directly
+    // No slug yet â€” serve page directly
     await serveComicPage(comic, comic.id, req, res);
   } catch {
     res.sendFile(path.join(__dirname, 'public', 'comic.html'));
   }
 });
 
-// ── Home page — SSR all sections so Google sees real content ──────────────────
+// â”€â”€ Home page â€” SSR all sections so Google sees real content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.get('/', async (req, res) => {
   try {
     const cc = `(SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) AS chapter_count`;
-    const [heroRes, newRelRes, actionRes, romanceRes, fantasyRes, dramaRes, mostViewedRes, popularRes, genreRes] = await Promise.all([
+    // Romance fell to 2 books and Drama to 6 once adult titles were excluded, so those
+    // rows rendered nearly empty. Adventure (24) and Martial Arts (13) have real depth.
+    const [heroRes, newRelRes, actionRes, adventureRes, fantasyRes, martialRes, mostViewedRes, popularRes, genreRes] = await Promise.all([
       pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${SAFE} ORDER BY c.views DESC LIMIT 6`),
       pool.query(`SELECT c.*, ${cc}, (SELECT created_at FROM chapters WHERE comic_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_chapter_date FROM comics c WHERE ${SAFE} AND (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) > 0 ORDER BY last_chapter_date DESC LIMIT 12`),
       pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${SAFE} AND c.genres LIKE $1 ORDER BY c.views DESC LIMIT 12`, ['%"Action"%']),
-      pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${SAFE} AND c.genres LIKE $1 ORDER BY c.views DESC LIMIT 12`, ['%"Romance"%']),
+      pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${SAFE} AND c.genres LIKE $1 ORDER BY c.views DESC LIMIT 12`, ['%"Adventure"%']),
       pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${SAFE} AND c.genres LIKE $1 ORDER BY c.views DESC LIMIT 12`, ['%"Fantasy"%']),
-      pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${SAFE} AND c.genres LIKE $1 ORDER BY c.views DESC LIMIT 12`, ['%"Drama"%']),
+      pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${SAFE} AND c.genres LIKE $1 ORDER BY c.views DESC LIMIT 12`, ['%"Martial Arts"%']),
       pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${SAFE} ORDER BY c.views DESC LIMIT 12`),
       pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${SAFE} ORDER BY c.views DESC LIMIT 24`),
       pool.query('SELECT genres FROM comics c WHERE ' + SAFE),
@@ -794,9 +881,9 @@ app.get('/', async (req, res) => {
       .replace('<!--SSR:heroSection-->',    ssrHero(heroRes.rows))
       .replace('<!--SSR:newReleasesRow-->', ssrRow(newRelRes.rows))
       .replace('<!--SSR:actionRow-->',      ssrRow(actionRes.rows))
-      .replace('<!--SSR:romanceRow-->',     ssrRow(romanceRes.rows))
+      .replace('<!--SSR:adventureRow-->',   ssrRow(adventureRes.rows))
       .replace('<!--SSR:fantasyRow-->',     ssrRow(fantasyRes.rows))
-      .replace('<!--SSR:dramaRow-->',       ssrRow(dramaRes.rows))
+      .replace('<!--SSR:martialArtsRow-->', ssrRow(martialRes.rows))
       .replace('<!--SSR:mostViewedRow-->',  ssrRow(mostViewedRes.rows))
       .replace('<!--SSR:popularGrid-->',    ssrRow(popularRes.rows))
       .replace('<!--SSR:genreTags-->',      genreTagsHtml)
@@ -810,12 +897,12 @@ app.get('/', async (req, res) => {
   } catch (err) {
     // Falling back to the static shell means Google gets a page with no comics on it,
     // so this must be loud rather than silent.
-    console.error('[home SSR failed — serving static shell]', err.stack || err.message);
+    console.error('[home SSR failed â€” serving static shell]', err.stack || err.message);
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
   }
 });
 
-// ── Browse page — SSR initial grid so Google sees real comic links ─────────────
+// â”€â”€ Browse page â€” SSR initial grid so Google sees real comic links â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.get('/browse', async (req, res) => {
   try {
     const { genre, status, search, sort = 'updated' } = req.query;
@@ -850,18 +937,18 @@ app.get('/browse', async (req, res) => {
       .replace('<!--SSR:genreNav-->',    await genreNavHtml())
       .replace('<!--SSR:browseGrid-->',  gridHtml)
       .replaceAll('__OG_IMAGE__',        esc(popularCover))
-      // Must land BEFORE browse.js — see the note on the home route.
+      // Must land BEFORE browse.js â€” see the note on the home route.
       .replace(/<script src="\/js\/browse\.js/,
         `<script>window.BROWSE_SSR=true;window.BROWSE_TOTAL=${total};window.BROWSE_LOADED=${comicsRes.rows.length};</script>\n  <script src="/js/browse.js`);
 
     res.send(html);
   } catch (err) {
-    console.error('[browse SSR failed — serving static shell]', err.stack || err.message);
+    console.error('[browse SSR failed â€” serving static shell]', err.stack || err.message);
     res.sendFile(path.join(__dirname, 'public', 'browse.html'));
   }
 });
 
-// ── /genre/:slug — crawlable genre landing pages ──────────────────────────────
+// â”€â”€ /genre/:slug â€” crawlable genre landing pages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Genres previously existed only as ?genre= query params, which Google treats as
 // faceted duplicates of /browse and largely declines to index. These are real paths
 // with their own title, copy and CollectionPage schema.
@@ -887,9 +974,9 @@ app.get('/genre/:slug', async (req, res) => {
     const pageTitle = fitTitle(`${name} Manhwa & Manga`, [
       ' - Read Free Online | MangVault', ' - Read Free | MangVault', ' | MangVault', '',
     ]);
-    const desc = fitDesc(`Read free ${name.toLowerCase()} manhwa, manhua and manga at MangVault — ${count} series, ${totalChapters.toLocaleString('en-US')} chapters, no signup.`);
+    const desc = fitDesc(`Read free ${name.toLowerCase()} manhwa, manhua and manga at MangVault â€” ${count} series, ${totalChapters.toLocaleString('en-US')} chapters, no signup.`);
 
-    const intro = `Browse every ${esc(name.toLowerCase())} series on MangVault — ${count} titles and ${totalChapters.toLocaleString('en-US')} chapters, free to read in English with no account needed. Sorted by popularity, updated as new chapters land.`;
+    const intro = `Browse every ${esc(name.toLowerCase())} series on MangVault â€” ${count} titles and ${totalChapters.toLocaleString('en-US')} chapters, free to read in English with no account needed. Sorted by popularity, updated as new chapters land.`;
 
     const related = [...map.entries()]
       .filter(([slug, g]) => slug !== req.params.slug && g.count >= GENRE_INDEX_MIN)
@@ -949,7 +1036,7 @@ app.get('/genre/:slug', async (req, res) => {
       .replace('<!--SSR:browseGrid-->', rows.map(ssrComicCard).join(''))
       .replace('<!--SSR:genreRelated-->', related ? `<strong style="font-size:12px;color:var(--text3);align-self:center;margin-right:4px">More genres:</strong>${related}` : '')
       .replaceAll('__OG_IMAGE__', esc(popularCover))
-      // Must land BEFORE browse.js — see the note on the home route.
+      // Must land BEFORE browse.js â€” see the note on the home route.
       .replace(/<script src="\/js\/browse\.js/,
         `<script>window.BROWSE_SSR=true;window.BROWSE_GENRE=${JSON.stringify(name)};window.BROWSE_TOTAL=${count};window.BROWSE_LOADED=${rows.length};</script>\n  <script src="/js/browse.js`);
 
@@ -960,10 +1047,10 @@ app.get('/genre/:slug', async (req, res) => {
   }
 });
 
-// ── Other static routes ───────────────────────────────────────────────────────
+// â”€â”€ Other static routes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.get('/admin', requireAdmin, (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 
-// ── /:slug — comic pages by name ──────────────────────────────────────────────
+// â”€â”€ /:slug â€” comic pages by name â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.get('/:slug', async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -978,7 +1065,7 @@ app.get('/:slug', async (req, res) => {
   }
 });
 
-// ── Catch-all — anything unmatched is a real 404, never a soft 200 ────────────
+// â”€â”€ Catch-all â€” anything unmatched is a real 404, never a soft 200 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.use((req, res) => send404(res));
 
 initDb()

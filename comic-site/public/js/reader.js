@@ -4,6 +4,90 @@
 
 const container = document.getElementById('readerContainer');
 
+// ── Reading progress ──────────────────────────────────────────────────────────
+// Kept in localStorage rather than on the server: there are no user accounts, and it
+// also means progress never touches the SSR HTML, so an adult title a reader has
+// opened can never leak into a crawlable "Continue Reading" row.
+const PROGRESS_KEY = 'mv_progress';
+const PROGRESS_MAX = 40;
+
+function saveProgress() {
+  if (!window.CHAPTER_SSR || !window.CHAPTER_SLUG) return;
+  try {
+    const all = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}');
+    all[window.CHAPTER_SLUG] = {
+      chapter: window.CHAPTER_NUMBER,
+      title: window.CHAPTER_COMIC_TITLE || '',
+      cover: window.CHAPTER_COVER || '',
+      adult: window.CHAPTER_IS_ADULT ? 1 : 0,
+      ts: Date.now(),
+    };
+    // Evict least-recently-read once over the cap.
+    const keys = Object.keys(all);
+    if (keys.length > PROGRESS_MAX) {
+      keys.sort((a, b) => (all[a].ts || 0) - (all[b].ts || 0))
+          .slice(0, keys.length - PROGRESS_MAX)
+          .forEach(k => delete all[k]);
+    }
+    localStorage.setItem(PROGRESS_KEY, JSON.stringify(all));
+  } catch {}
+}
+
+// ── Keyboard navigation ───────────────────────────────────────────────────────
+// Reuses the prev/next hrefs the server already rendered into the toolbar.
+function initKeyboardNav() {
+  const href = (sel) => {
+    const el = document.querySelector(sel);
+    return el && el.tagName === 'A' ? el.getAttribute('href') : null;
+  };
+  const prev = href('.reader-nav a[rel="prev"]');
+  const next = href('.reader-nav a[rel="next"]');
+  const first = href('.chapter-jump a:first-child');
+  const last = href('.chapter-jump a:last-child');
+
+  document.addEventListener('keydown', (e) => {
+    // Never hijack keys while the reader is typing somewhere.
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+    switch (e.key) {
+      case 'ArrowLeft':  if (prev)  { e.preventDefault(); location.href = prev; }  break;
+      case 'ArrowRight': if (next)  { e.preventDefault(); location.href = next; }  break;
+      case 'Home':       if (first) { e.preventDefault(); location.href = first; } break;
+      case 'End':        if (last)  { e.preventDefault(); location.href = last; }  break;
+      case '?':          toggleShortcutHelp(); break;
+      case 'Escape':     hideShortcutHelp(); break;
+    }
+  });
+}
+
+function toggleShortcutHelp() {
+  let el = document.getElementById('kbHelp');
+  if (el) { el.remove(); return; }
+  el = document.createElement('div');
+  el.id = 'kbHelp';
+  el.className = 'kb-help';
+  el.innerHTML = `
+    <div class="kb-help-inner">
+      <h3>Keyboard shortcuts</h3>
+      <dl>
+        <dt><kbd>&larr;</kbd></dt><dd>Previous chapter</dd>
+        <dt><kbd>&rarr;</kbd></dt><dd>Next chapter</dd>
+        <dt><kbd>Home</kbd></dt><dd>First chapter</dd>
+        <dt><kbd>End</kbd></dt><dd>Latest chapter</dd>
+        <dt><kbd>?</kbd></dt><dd>Toggle this panel</dd>
+      </dl>
+      <button type="button" onclick="document.getElementById('kbHelp').remove()">Close</button>
+    </div>`;
+  document.body.appendChild(el);
+}
+
+function hideShortcutHelp() {
+  const el = document.getElementById('kbHelp');
+  if (el) el.remove();
+}
+
 async function loadReader() {
   try {
     if (window.CHAPTER_SSR) {
@@ -29,6 +113,11 @@ async function loadReader() {
     showEmpty('Chapter not found.');
   }
 }
+
+// Nav and progress do not depend on the PDF rendering, so wire them immediately
+// rather than waiting on (or being blocked by) the reader pipeline.
+initKeyboardNav();
+saveProgress();
 
 // Fallback for any page served without SSR (e.g. the DB error path).
 async function loadLegacy() {
