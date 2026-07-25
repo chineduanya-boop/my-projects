@@ -1,17 +1,45 @@
 const express = require('express');
 const router = express.Router();
-const https = require('https');
 const { pool, slugify } = require('../database/db');
 const { bustCache } = require('./comics');
+const { notify } = require('../lib/indexnow');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
 const { S3Client } = require('@aws-sdk/client-s3');
 const path = require('path');
 
-const SITEMAP_URL = encodeURIComponent('https://mangvault.com/sitemap.xml');
-function pingSearchEngines() {
-  [`https://www.google.com/ping?sitemap=${SITEMAP_URL}`, `https://www.bing.com/ping?sitemap=${SITEMAP_URL}`]
-    .forEach(url => https.get(url, res => res.resume()).on('error', () => {}));
+// Replaces the previous pingSearchEngines(), which hit google.com/ping?sitemap= and
+// bing.com/ping?sitemap= on every publish. Both endpoints were retired — Google returns
+// 404, Bing returns 410 Gone — and the errors were discarded, so publishing had been
+// notifying nobody at all. IndexNow submits the specific changed URLs instead of asking
+// an engine to re-read a 6,000-URL sitemap, and reaches Bing, Yandex, Seznam, Naver and
+// Yep in one request.
+
+// Chapter numbers are REAL: 512 -> "512", 43.5 -> "43-5". Must match chapterSlugPart()
+// in server.js or the submitted URL will 301 and waste the notification.
+const chapterPath = (slug, num) => {
+  const n = Number(num);
+  return `/${slug}/chapter-${Number.isInteger(n) ? n : String(n).replace('.', '-')}`;
+};
+
+// A new chapter changes the chapter page, its comic page and the listings that surface
+// it, so submit all three rather than the chapter alone.
+function notifyChapter(slug, chapterNumber) {
+  if (!slug) return;
+  notify(['/', '/browse', `/${slug}`, chapterPath(slug, chapterNumber)]);
+}
+
+function notifyComic(slug) {
+  if (!slug) return;
+  notify(['/', '/browse', `/${slug}`]);
+}
+
+// Look up a comic's slug for the chapter routes, which only receive an id.
+async function slugForComic(id) {
+  try {
+    const { rows } = await pool.query('SELECT slug FROM comics WHERE id = $1', [id]);
+    return rows[0] ? rows[0].slug : null;
+  } catch { return null; }
 }
 
 const s3 = new S3Client({
@@ -98,7 +126,9 @@ router.post('/comics', uploadCover.single('cover'), async (req, res) => {
     `, [title, author || 'Unknown', artist || author || 'Unknown', description || '', coverImage, JSON.stringify(parsedGenres), status || 'Ongoing', featured ? 1 : 0, is_adult ? 1 : 0, slug]);
 
     bustCache();
-    pingSearchEngines();
+    // Adult titles are indexable by design, so they are notified too — only their
+    // chapter pages stay out of the index.
+    notifyComic(slug);
     res.json({ id: rows[0].id, message: 'Comic created' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -122,6 +152,9 @@ router.put('/comics/:id', uploadCover.single('cover'), async (req, res) => {
     `, [title || comic.title, author || comic.author, artist || comic.artist, description !== undefined ? description : comic.description, coverImage, JSON.stringify(parsedGenres), status || comic.status, featured !== undefined ? (featured ? 1 : 0) : comic.featured, is_adult !== undefined ? (is_adult ? 1 : 0) : (comic.is_adult || 0), req.params.id]);
 
     bustCache();
+    // Edits change the title, description and cover that engines have cached, so this
+    // path notifies too — it previously busted the local cache and told nobody.
+    notifyComic(comic.slug);
     res.json({ message: 'Comic updated' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -168,7 +201,7 @@ router.post('/comics/:id/chapters', uploadPages.array('pages', 300), async (req,
     await client.query('COMMIT');
 
     bustCache();
-    pingSearchEngines();
+    notifyChapter(await slugForComic(req.params.id), chapter_number);
     res.json({ id: chapterId, message: `Chapter ${chapter_number} added with ${req.files.length} pages` });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -195,7 +228,7 @@ router.post('/comics/:id/chapters/pdf', uploadPdf.single('pdf'), async (req, res
 
     await pool.query('UPDATE comics SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [req.params.id]);
     bustCache();
-    pingSearchEngines();
+    notifyChapter(await slugForComic(req.params.id), chapter_number);
     res.json({ id: rows[0].id, message: `Chapter ${chapter_number} added as PDF` });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -661,6 +661,13 @@ async function serveChapterPage(comic, chapter, chapters, req, res) {
 
   const metaTags = `<title>${esc(pageTitle)}</title>
   <meta name="description" content="${esc(desc)}" />
+  <!-- Google ignores keywords entirely; Bing still treats them as a weak signal, and
+       Bing is where the non-Google traffic actually comes from (it also feeds Yahoo,
+       DuckDuckGo and Ecosia). Cheap to emit, so chapter pages carry them too. -->
+  <meta name="keywords" content="${esc([
+    `${comic.title} chapter ${num}`, `${comic.title} ch ${num}`, comic.title,
+    'read online free', 'english', ...genres.slice(0, 3), 'manhwa', 'MangVault',
+  ].join(', '))}" />
   <meta name="robots" content="${indexable ? 'index, follow, max-image-preview:large' : 'noindex, follow'}" />
   <link rel="canonical" href="${canonical}" />
   ${prev ? `<link rel="prev" href="${SITE_URL}${chapterUrl(comic.slug, prev.chapter_number)}" />` : ''}
@@ -996,6 +1003,10 @@ app.get('/genre/:slug', async (req, res) => {
 
     const head = `<title>${esc(pageTitle)}</title>
   <meta name="description" content="${esc(desc)}" />
+  <meta name="keywords" content="${esc([
+    `${name.toLowerCase()} manhwa`, `${name.toLowerCase()} manga`, `${name.toLowerCase()} manhua`,
+    `read ${name.toLowerCase()} online free`, 'english', 'MangVault',
+  ].join(', '))}" />
   <meta name="robots" content="${indexable ? 'index, follow, max-image-preview:large' : 'noindex, follow'}" />
   <link rel="canonical" href="${canonical}" />
   <meta property="og:type" content="website" />

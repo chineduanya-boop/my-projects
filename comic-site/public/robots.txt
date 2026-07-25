@@ -21,5 +21,10 @@ Disallow: /uploads/
 # canonical if it is allowed to fetch the page. Blocking them would strand
 # the duplicates instead of consolidating them.
 
+# Yandex-only directive. Google and Bing consolidate these facets via the canonical on
+# /browse; Yandex leans on Clean-param instead, so this tells it to treat
+# /browse?sort=views and /browse?genre=Action as the same page as /browse.
+Clean-param: sort&genre&search&status&adult /browse
+
 # Sitemaps
 Sitemap: https://mangvault.com/sitemap.xml
