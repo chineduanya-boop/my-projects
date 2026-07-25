@@ -1,5 +1,6 @@
 node_modules/
 .env
+.indexing-state.json
 database/*.db
 database/*.db-shm
 database/*.db-wal
