@@ -7,15 +7,26 @@
  * every sitemap-chapters-N.xml. This is the mechanism that gets the site crawled;
  * per-URL indexing requests are capped near 10/day and are a supplement at best.
  *
- * KNOWN LIMITATION — this does not work against the "Default" profile.
+ * KNOWN LIMITATION — this cannot drive your everyday Chrome session.
  * Modern Chrome refuses remote debugging on the default user-data-dir:
  *   "DevTools remote debugging requires a non-default data directory."
- * That is a deliberate anti-session-theft control. Do NOT work around it by copying
- * the profile directory — that is precisely the attack the control exists to stop.
  *
- * It does work against a secondary profile (--profile "Profile 1") IF that profile
- * is signed into a Google account with Search Console access. Otherwise submit the
- * sitemap by hand: Search Console -> Sitemaps -> enter "sitemap.xml" -> Submit.
+ * The restriction is on the DATA DIRECTORY, not the profile inside it, so
+ * --profile "Profile 1" does not help — every profile under your normal Chrome
+ * directory is equally blocked. A fresh --user-data-dir launches fine but starts
+ * signed out, and signing in would mean typing a password into an automated
+ * browser, which defeats the point.
+ *
+ * Do NOT work around this by copying the profile directory or flipping the
+ * RemoteDebuggingAllowed policy. The control exists to stop session theft, and it
+ * protects every site you are signed into — not just Search Console.
+ *
+ * Practical options:
+ *   1. Submit by hand: Search Console -> Sitemaps -> "sitemap.xml" -> Submit.
+ *   2. Use the Claude in Chrome extension (claude.ai/chrome), which works with the
+ *      live session through the extension API rather than CDP.
+ *   3. Search Console API with a service account, if this ever needs to be
+ *      genuinely automated on a schedule.
  *
  * Chrome must be FULLY CLOSED — it holds an exclusive lock on the profile directory.
  * The script reuses the Google session already signed into that profile and never
