@@ -3,15 +3,21 @@ document.getElementById('hamburger')?.addEventListener('click', () => {
   document.getElementById('navLinks')?.classList.toggle('open');
 });
 
+// Genre URL helper — must match genreSlug() in server.js so client-rendered links
+// point at the real /genre/:slug landing pages rather than ?genre= facets.
+function genreUrl(g) {
+  return `/genre/${g.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`;
+}
+
 // Load genres into dropdown
 async function loadGenreDropdown() {
+  const menu = document.getElementById('genreDropdown');
+  if (!menu) return;
+  // Server-rendered already — don't refetch and don't clobber it.
+  if (menu.children.length) return;
   try {
     const genres = await fetch('/api/genres').then(r => r.json());
-    const menu = document.getElementById('genreDropdown');
-    if (!menu) return;
-    menu.innerHTML = genres.map(g =>
-      `<a href="/browse?genre=${encodeURIComponent(g)}">${g}</a>`
-    ).join('');
+    menu.innerHTML = genres.map(g => `<a href="${genreUrl(g)}">${g}</a>`).join('');
   } catch {}
 }
 
@@ -200,7 +206,7 @@ async function loadGenreTags() {
   try {
     const genres = await fetch('/api/genres').then(r => r.json());
     el.innerHTML = genres.length
-      ? genres.map(g => `<a href="/browse?genre=${encodeURIComponent(g)}" class="genre-tag-btn">${g}</a>`).join('')
+      ? genres.map(g => `<a href="${genreUrl(g)}" class="genre-tag-btn">${g}</a>`).join('')
       : '<p style="color:var(--text3)">No genres yet.</p>';
   } catch { el.innerHTML = '<p style="color:var(--text3)">Failed to load.</p>'; }
 }

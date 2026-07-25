@@ -1,8 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!--SSR:head-->
   <title>Browse All Comics - Manhua, Manga & Manhwa | MangVault</title>
   <meta name="description" content="Browse all free manhua, manga and manhwa on MangVault. Filter by genre, status, and sort by popularity or latest updates. Hundreds of free chapters to read." />
   <meta name="keywords" content="browse manga, browse manhua, free comics list, manga catalogue, manhwa list, MangVault" />
@@ -52,8 +53,9 @@
     }
   }
   </script>
+  <!--/SSR:head-->
 
-  <link rel="stylesheet" href="/css/style.css?v=7" />
+  <link rel="stylesheet" href="/css/style.css?v=14" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
 <body>
@@ -68,7 +70,7 @@
         <a href="/browse" class="active">Browse</a>
         <div class="dropdown">
           <a href="#" class="dropdown-toggle">Genres <i class="fa fa-chevron-down"></i></a>
-          <div class="dropdown-menu" id="genreDropdown"></div>
+          <div class="dropdown-menu" id="genreDropdown"><!--SSR:genreNav--></div>
         </div>
       </nav>
       <div class="header-right">
@@ -116,8 +118,11 @@
       </div>
     </div>
 
+    <p class="genre-intro"><!--SSR:genreIntro--></p>
+
     <!-- GRID -->
     <div class="comics-grid" id="browseGrid"><!--SSR:browseGrid--></div>
+    <div class="genre-related"><!--SSR:genreRelated--></div>
     <div id="loadMoreArea" class="load-more-area">
       <button id="loadMoreBtn" class="load-more-btn" style="display:none">Load More</button>
       <div id="browseLoading" class="row-loading"><i class="fa fa-spinner fa-spin"></i></div>
@@ -134,15 +139,15 @@
         <a href="/browse">Browse All</a>
         <a href="/browse?sort=views">Most Popular</a>
         <a href="/browse?sort=updated">New Releases</a>
-        <a href="/browse?genre=Action">Action</a>
-        <a href="/browse?genre=Romance">Romance</a>
-        <a href="/browse?genre=Fantasy">Fantasy</a>
-        <a href="/browse?genre=Drama">Drama</a>
+        <a href="/genre/action">Action</a>
+        <a href="/genre/romance">Romance</a>
+        <a href="/genre/fantasy">Fantasy</a>
+        <a href="/genre/drama">Drama</a>
       </div>
       <p class="footer-copy">&copy; 2025 MangVault. All rights reserved.</p>
     </div>
   </footer>
 
-  <script src="/js/browse.js?v=6"></script>
+  <script src="/js/browse.js?v=9"></script>
 </body>
 </html>

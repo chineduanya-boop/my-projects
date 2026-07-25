@@ -1,10 +1,20 @@
 User-agent: *
 Allow: /
-Allow: /browse
+
 Disallow: /admin
 Disallow: /admin/
 Disallow: /api/
 Disallow: /uploads/
+
+# Legacy numeric chapter URLs — these 301 to /:slug/chapter-:num.
+# Blocking them keeps the redirect hop out of the crawl budget.
+Disallow: /reader/
+Disallow: /comic/
+
+# Faceted /browse?sort= and ?genre= URLs are left crawlable on purpose:
+# browse.html self-canonicalises to /browse, and Google can only read that
+# canonical if it is allowed to fetch the page. Blocking them would strand
+# the duplicates instead of consolidating them.
 
 # Sitemaps
 Sitemap: https://mangvault.com/sitemap.xml

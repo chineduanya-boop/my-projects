@@ -1,64 +1,65 @@
-const chapterId = location.pathname.split('/').pop();
+// Chapter pages are server-rendered: the toolbar, nav links, headings and chapter
+// context all arrive in the HTML. This script only paints the pages themselves.
+// window.CHAPTER_PDF / CHAPTER_ID are injected by serveChapterPage in server.js.
+
+const container = document.getElementById('readerContainer');
 
 async function loadReader() {
-  const container = document.getElementById('readerContainer');
   try {
-    const data = await fetch(`/api/chapters/${chapterId}/pages`).then(r => {
-      if (!r.ok) throw new Error('Not found');
-      return r.json();
-    });
-
-    const { chapter, pages, prevChapter, nextChapter } = data;
-
-    const comic = await fetch(`/api/comics/${chapter.comic_id}`).then(r => r.json());
-
-    document.title = `${comic.title} - Chapter ${chapter.chapter_number} | MangaVault`;
-    document.getElementById('readerComicTitle').textContent = comic.title;
-    document.getElementById('readerChapterTitle').textContent = `Chapter ${chapter.chapter_number}${chapter.title ? ` - ${chapter.title}` : ''}`;
-    document.getElementById('chapterSelect').textContent = `Ch. ${chapter.chapter_number}`;
-    document.getElementById('backToComic').href = comic.slug ? `/${comic.slug}` : `/comic/${chapter.comic_id}`;
-
-    const prevBtn    = document.getElementById('prevChapterBtn');
-    const nextBtn    = document.getElementById('nextChapterBtn');
-    const prevBtnBot = document.getElementById('prevChapterBtnBottom');
-    const nextBtnBot = document.getElementById('nextChapterBtnBottom');
-
-    if (prevChapter) { prevBtn.href = `/reader/${prevChapter.id}`; prevBtnBot.href = `/reader/${prevChapter.id}`; }
-    else             { prevBtn.classList.add('disabled'); prevBtnBot.classList.add('disabled'); }
-
-    if (nextChapter) { nextBtn.href = `/reader/${nextChapter.id}`; nextBtnBot.href = `/reader/${nextChapter.id}`; }
-    else             { nextBtn.classList.add('disabled'); nextBtnBot.classList.add('disabled'); }
-
-    container.innerHTML = '';
-
-    if (chapter.pdf_url) {
-      await renderPdf(chapter.pdf_url, container);
-    } else {
-      if (!pages.length) {
-        container.innerHTML = `<div class="reader-loading"><i class="fa fa-exclamation-circle fa-3x"></i><p>No pages in this chapter.</p></div>`;
-        return;
+    if (window.CHAPTER_SSR) {
+      // Fast path — no API round-trip, the PDF URL is already on the page.
+      if (window.CHAPTER_PDF) {
+        await renderPdf(window.CHAPTER_PDF, container);
+      } else {
+        const { pages } = await fetch(`/api/chapters/${window.CHAPTER_ID}/pages`).then(r => {
+          if (!r.ok) throw new Error('Not found');
+          return r.json();
+        });
+        if (!pages.length) return showEmpty('No pages in this chapter.');
+        container.innerHTML = '';
+        renderImages(pages, container);
       }
-      renderImages(pages, container);
+    } else {
+      await loadLegacy();
     }
 
     document.getElementById('readerBottomNav').style.display = 'flex';
-
-    let lastScroll = 0;
-    const toolbar = document.getElementById('readerToolbar');
-    toolbar.style.transition = 'transform 0.3s';
-    window.addEventListener('scroll', () => {
-      const y = window.scrollY;
-      if (y > lastScroll + 50) toolbar.style.transform = 'translateY(-100%)';
-      else if (y < lastScroll - 10) toolbar.style.transform = '';
-      lastScroll = y;
-    }, { passive: true });
-
+    wireToolbarAutoHide();
   } catch {
-    container.innerHTML = `<div class="reader-loading"><i class="fa fa-exclamation-circle fa-3x"></i><p>Chapter not found.</p><a href="/" style="color:var(--red);margin-top:12px">Go Home</a></div>`;
+    showEmpty('Chapter not found.');
   }
 }
 
-function renderImages(pages, container) {
+// Fallback for any page served without SSR (e.g. the DB error path).
+async function loadLegacy() {
+  const chapterId = location.pathname.split('/').pop();
+  const { chapter, pages } = await fetch(`/api/chapters/${chapterId}/pages`).then(r => {
+    if (!r.ok) throw new Error('Not found');
+    return r.json();
+  });
+  container.innerHTML = '';
+  if (chapter.pdf_url) return renderPdf(chapter.pdf_url, container);
+  if (!pages.length) return showEmpty('No pages in this chapter.');
+  renderImages(pages, container);
+}
+
+function showEmpty(msg) {
+  container.innerHTML = `<div class="reader-loading"><i class="fa fa-exclamation-circle fa-3x"></i><p>${msg}</p><a href="/" style="color:var(--red);margin-top:12px">Go Home</a></div>`;
+}
+
+function wireToolbarAutoHide() {
+  let lastScroll = 0;
+  const toolbar = document.getElementById('readerToolbar');
+  toolbar.style.transition = 'transform 0.3s';
+  window.addEventListener('scroll', () => {
+    const y = window.scrollY;
+    if (y > lastScroll + 50) toolbar.style.transform = 'translateY(-100%)';
+    else if (y < lastScroll - 10) toolbar.style.transform = '';
+    lastScroll = y;
+  }, { passive: true });
+}
+
+function renderImages(pages, target) {
   pages.forEach(p => {
     const div = document.createElement('div');
     div.className = 'reader-page';
@@ -67,20 +68,15 @@ function renderImages(pages, container) {
     img.alt = `Page ${p.page_number}`;
     img.loading = 'lazy';
     div.appendChild(img);
-    container.appendChild(div);
+    target.appendChild(div);
   });
 }
 
-async function renderPdf(pdfUrl, container) {
-  const loadingDiv = document.createElement('div');
-  loadingDiv.className = 'reader-loading';
-  loadingDiv.innerHTML = '<i class="fa fa-spinner fa-spin fa-3x"></i><p>Loading PDF...</p>';
-  container.appendChild(loadingDiv);
-
+async function renderPdf(pdfUrl, target) {
   const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
-  loadingDiv.remove();
+  target.innerHTML = '';
 
-  const containerWidth = Math.min(container.clientWidth || 900, 900);
+  const containerWidth = Math.min(target.clientWidth || 900, 900);
 
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum);
@@ -98,7 +94,7 @@ async function renderPdf(pdfUrl, container) {
     canvas.style.display = 'block';
 
     div.appendChild(canvas);
-    container.appendChild(div);
+    target.appendChild(div);
 
     await page.render({ canvasContext: canvas.getContext('2d'), viewport: scaled }).promise;
   }

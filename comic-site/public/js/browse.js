@@ -1,4 +1,16 @@
+// Must match genreSlug() in server.js so client-rendered links point at the real
+// /genre/:slug landing pages rather than ?genre= facets.
+function genreUrl(g) {
+  return `/genre/${g.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`;
+}
+
 const params = new URLSearchParams(location.search);
+
+// On /genre/:slug there are no query params, so the active genre comes from
+// BROWSE_GENRE (injected by the genre route). Without this, changing the status or
+// sort dropdown would silently drop the genre and show the whole catalogue.
+const activeGenre = params.get('genre') || window.BROWSE_GENRE || '';
+
 let currentOffset = window.BROWSE_LOADED || 0;
 const limit = 24;
 let loading = false;
@@ -38,12 +50,16 @@ async function loadGenreFilter() {
     genres.forEach(g => {
       const opt = document.createElement('option');
       opt.value = g; opt.textContent = g;
-      if (params.get('genre') === g) opt.selected = true;
+      if (activeGenre === g) opt.selected = true;
       sel.appendChild(opt);
     });
+    // The options only exist now, so the select can finally take its value. Setting
+    // it earlier is a no-op — a <select> silently rejects a value with no option.
+    sel.value = activeGenre;
     // Also populate dropdown
     const menu = document.getElementById('genreDropdown');
-    if (menu) menu.innerHTML = genres.map(g => `<a href="/browse?genre=${encodeURIComponent(g)}">${g}</a>`).join('');
+    // Server-rendered already — don't clobber it.
+    if (menu && !menu.children.length) menu.innerHTML = genres.map(g => `<a href="${genreUrl(g)}">${g}</a>`).join('');
   } catch {}
 }
 
@@ -89,17 +105,19 @@ async function loadComics(reset = false) {
   loading = false;
 }
 
-// Set initial filter values from URL
-document.getElementById('genreFilter').value = params.get('genre') || '';
+// Set initial filter values from URL. genreFilter is set inside loadGenreFilter()
+// instead, once its <option> elements actually exist.
 document.getElementById('statusFilter').value = params.get('status') || '';
 document.getElementById('sortFilter').value = params.get('sort') || 'updated';
 document.getElementById('searchInput').value = params.get('search') || '';
 
-// Update page title
-const genre = params.get('genre');
+// Update page title (SSR already sets it on /browse and /genre/:slug)
+const genre = activeGenre;
 const search = params.get('search');
-if (genre) document.getElementById('browseTitle').textContent = genre;
-else if (search) document.getElementById('browseTitle').textContent = `Search: "${search}"`;
+if (!window.BROWSE_SSR) {
+  if (genre) document.getElementById('browseTitle').textContent = genre;
+  else if (search) document.getElementById('browseTitle').textContent = `Search: "${search}"`;
+}
 
 // Filter change listeners
 ['genreFilter', 'statusFilter', 'sortFilter'].forEach(id => {

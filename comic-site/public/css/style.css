@@ -853,3 +853,56 @@ input[type="checkbox"]:checked ~ .toggle-switch::after { transform: translateX(1
 .upload-type-toggle { display: flex; gap: 24px; margin-top: 4px; }
 .upload-type-option { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; color: var(--text2); }
 .upload-type-option input { accent-color: var(--red); width: 16px; height: 16px; cursor: pointer; }
+
+/* ===== READER SEO SECTIONS ===== */
+/* The reader itself is a pdf.js canvas with no crawlable text, so the chapter page
+   carries its real content in a header above and a context block below. */
+.reader-seo-head { max-width: 900px; margin: 0 auto; padding: 16px 16px 8px; }
+.reader-breadcrumb { font-size: 12px; color: var(--text3); margin-bottom: 8px; }
+.reader-breadcrumb a { color: var(--text2); }
+.reader-breadcrumb a:hover { color: var(--red); }
+.reader-breadcrumb span { margin: 0 6px; opacity: 0.5; }
+.reader-h1 { font-size: 20px; font-weight: 700; line-height: 1.3; }
+.reader-h1 a { color: var(--text2); }
+.reader-h1 a:hover { color: var(--red); }
+.reader-intro { font-size: 13px; color: var(--text2); margin-top: 6px; }
+
+.reader-context { max-width: 900px; margin: 0 auto; padding: 32px 16px 64px; }
+.reader-context h2 { font-size: 17px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+.reader-context .chapters-section { margin-top: 32px; }
+
+.context-comic { display: flex; gap: 16px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.context-comic-cover { flex: 0 0 92px; }
+.context-comic-cover img { width: 92px; aspect-ratio: 2/3; object-fit: cover; border-radius: 6px; }
+.context-comic-body { min-width: 0; }
+.context-comic-body h3 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.context-comic-meta { font-size: 12px; color: var(--text3); margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 10px; }
+.context-comic-desc { font-size: 13px; color: var(--text2); }
+.context-genres { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.context-genres a { font-size: 11px; padding: 3px 9px; border-radius: 999px; background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+.context-genres a:hover { border-color: var(--red); color: var(--red); }
+
+.chapter-item.is-current { border-color: var(--red); background: var(--card-hover); }
+.chapter-jump { display: flex; justify-content: space-between; gap: 12px; margin-top: 14px; }
+.chapter-jump a { font-size: 13px; color: var(--text2); }
+.chapter-jump a:hover { color: var(--red); }
+
+@media (max-width: 600px) {
+  .reader-h1 { font-size: 17px; }
+  .context-comic { flex-direction: column; }
+  .context-comic-cover { flex: none; }
+}
+
+/* Home page H1 — present for semantics and screen readers, sized to sit quietly
+   above the hero rather than compete with it. */
+.home-h1 {
+  max-width: 1400px; margin: 0 auto; padding: 18px 20px 0;
+  font-size: 15px; font-weight: 600; color: var(--text2); letter-spacing: 0.2px;
+}
+@media (max-width: 600px) { .home-h1 { font-size: 13px; padding: 14px 14px 0; } }
+
+/* ===== GENRE LANDING PAGES ===== */
+.genre-intro { max-width: 780px; margin-bottom: 8px; color: var(--text2); font-size: 14px; }
+.genre-related { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 40px; }
+.genre-related a { font-size: 12px; padding: 5px 12px; border-radius: 999px; background: var(--bg3); border: 1px solid var(--border); color: var(--text2); }
+.genre-related a:hover { border-color: var(--red); color: var(--red); }

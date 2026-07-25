@@ -59,6 +59,18 @@ async function initDb() {
   await pool.query(`ALTER TABLE comics ADD COLUMN IF NOT EXISTS slug TEXT;`);
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_comics_slug ON comics(slug);`);
 
+  // seo_indexed gates the staged rollout of chapter-page indexing.
+  // 0 = chapter pages render but stay noindex; 1 = indexable + listed in the sitemap.
+  await pool.query(`ALTER TABLE comics ADD COLUMN IF NOT EXISTS seo_indexed INTEGER DEFAULT 0;`);
+
+  // Legacy imports used inconsistent status wording, which silently fell through the
+  // badge map in server.js, the browse status filter, and the schema.org output.
+  await pool.query(`UPDATE comics SET status = 'Ongoing'   WHERE status IN ('Releasing', 'Publishing', 'Active');`);
+  await pool.query(`UPDATE comics SET status = 'Completed' WHERE status IN ('Finished', 'Complete');`);
+
+  // Chapter lookups by (comic, number) back the /:slug/chapter-:num routes
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_chapters_comic_num ON chapters(comic_id, chapter_number);`);
+
   // Auto-generate slugs for any comics that don't have one yet
   const { rows } = await pool.query('SELECT id, title FROM comics WHERE slug IS NULL OR slug = \'\'');
   for (const comic of rows) {

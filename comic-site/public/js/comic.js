@@ -1,6 +1,12 @@
 // COMIC_ID is injected server-side for slug URLs; fall back to last path segment
 const id = window.COMIC_ID || location.pathname.split('/').pop();
 
+// Must match genreSlug() in server.js so client-rendered links point at the real
+// /genre/:slug landing pages rather than ?genre= facets.
+function genreUrl(g) {
+  return `/genre/${g.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`;
+}
+
 
 function formatDate(str) {
   if (!str) return '';
@@ -77,7 +83,7 @@ async function startLoadComic() {
             <span class="comic-meta-item"><i class="fa fa-book"></i> ${chapters.length} Chapters</span>
             <span class="comic-meta-item"><i class="fa fa-eye"></i> ${comic.views || 0} Views</span>
           </div>
-          ${genres.length ? `<div class="comic-detail-genres">${genres.map(g => `<a class="detail-genre-tag" href="/browse?genre=${encodeURIComponent(g)}">${g}</a>`).join('')}</div>` : ''}
+          ${genres.length ? `<div class="comic-detail-genres">${genres.map(g => `<a class="detail-genre-tag" href="${genreUrl(g)}">${g}</a>`).join('')}</div>` : ''}
           <p class="comic-detail-desc">${comic.description || 'No description available.'}</p>
           <div class="comic-detail-actions">
             ${firstChapter ? `<a href="/reader/${firstChapter.id}" class="btn-read"><i class="fa fa-book-open"></i> Read First Chapter</a>` : ''}
