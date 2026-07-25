@@ -70,11 +70,22 @@ async function submitUrls(urls, opts = {}) {
         log(`${res.status} — submitted ${batch.length} url(s)`);
       } else {
         const body = await res.text().catch(() => '');
-        log(`FAILED ${res.status} ${res.statusText} — ${body.slice(0, 160)}`);
-        log(res.status === 403 ? '  key rejected: check the key file matches KEY'
-          : res.status === 422 ? '  unprocessable: key file unreachable, or a URL is not on this host'
-          : res.status === 429 ? '  rate limited: back off and retry later'
-          : '');
+        log(`FAILED ${res.status} ${res.statusText} — ${body.slice(0, 200)}`);
+
+        // A brand-new key returns 403 SiteVerificationNotCompleted until the engines
+        // have fetched the key file and confirmed host ownership. That is normal on
+        // first use and resolves itself — quite different from a wrong key, which
+        // returns 403 with a different code and never resolves.
+        if (/SiteVerificationNotCompleted/i.test(body)) {
+          log('  key is still being verified — this is normal for a new key.');
+          log('  the engines fetch the key file on their own schedule; retry in a few minutes.');
+        } else if (res.status === 403) {
+          log('  key rejected: check the key file contents match KEY exactly');
+        } else if (res.status === 422) {
+          log('  unprocessable: key file unreachable, or a URL is not on this host');
+        } else if (res.status === 429) {
+          log('  rate limited: back off and retry later');
+        }
       }
     } catch (err) {
       lastStatus = 0;
