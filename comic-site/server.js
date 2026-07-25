@@ -100,7 +100,7 @@ async function countIndexableChapters() {
     `SELECT COUNT(*) AS n FROM (
        SELECT DISTINCT ch.comic_id, ch.chapter_number FROM chapters ch
        JOIN comics c ON c.id = ch.comic_id
-       WHERE c.seo_indexed = 1 AND c.is_adult = 0 AND c.slug IS NOT NULL AND c.slug <> ''
+       WHERE c.seo_indexed = 1 AND c.slug IS NOT NULL AND c.slug <> ''
      ) t`
   );
   return parseInt(rows[0].n, 10);
@@ -132,7 +132,7 @@ app.get('/sitemap-comics.xml', async (req, res) => {
     await sendXml(res, 'comics', async () => {
       const { rows } = await pool.query(
         `SELECT slug, title, cover_image, updated_at FROM comics
-         WHERE slug IS NOT NULL AND slug <> '' AND is_adult = 0 ORDER BY views DESC`
+         WHERE slug IS NOT NULL AND slug <> '' ORDER BY views DESC`
       );
       const urls = [
         `<url><loc>${SITE_URL}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
@@ -178,7 +178,7 @@ app.get('/sitemap-chapters-:page.xml', async (req, res) => {
       const { rows } = await pool.query(
         `SELECT DISTINCT c.slug, ch.chapter_number, MAX(ch.created_at) AS created_at
          FROM chapters ch JOIN comics c ON c.id = ch.comic_id
-         WHERE c.seo_indexed = 1 AND c.is_adult = 0 AND c.slug IS NOT NULL AND c.slug <> ''
+         WHERE c.seo_indexed = 1 AND c.slug IS NOT NULL AND c.slug <> ''
          GROUP BY c.slug, ch.chapter_number
          ORDER BY c.slug, ch.chapter_number
          LIMIT $1 OFFSET $2`,
@@ -275,9 +275,7 @@ let _genreMap = null;
 let _genreMapTs = 0;
 async function getGenreMap() {
   if (_genreMap && Date.now() - _genreMapTs < 5 * 60 * 1000) return _genreMap;
-  // Adult titles are excluded from the grid, so they must not inflate the counts
-  // that appear in the genre page copy, the <meta description> and the schema.
-  const { rows } = await pool.query('SELECT genres FROM comics WHERE is_adult = 0');
+  const { rows } = await pool.query('SELECT genres FROM comics');
   const counts = new Map();
   rows.forEach(r => {
     try { JSON.parse(r.genres).forEach(g => counts.set(g, (counts.get(g) || 0) + 1)); } catch {}
@@ -540,9 +538,8 @@ async function serveChapterPage(comic, chapter, chapters, req, res) {
 
   pool.query('UPDATE chapters SET views = views + 1 WHERE id = $1', [chapter.id]).catch(() => {});
 
-  // Staged rollout: only comics flagged seo_indexed expose chapter pages to search.
-  // Adult titles stay out of the index regardless.
-  const indexable = comic.seo_indexed === 1 && !comic.is_adult;
+  // Staged rollout: seo_indexed is the single gate for chapter-page indexing.
+  const indexable = comic.seo_indexed === 1;
 
   // A distinct chapter title (not just "Chapter 12") is worth putting in the <title>.
   const hasRealTitle = chapter.title && !/^chapter\s*[\d.]+$/i.test(chapter.title.trim());
@@ -865,7 +862,7 @@ app.get('/genre/:slug', async (req, res) => {
     const cc = `(SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) AS chapter_count`;
     const { rows } = await pool.query(
       `SELECT c.*, ${cc} FROM comics c
-       WHERE c.genres LIKE $1 AND c.is_adult = 0
+       WHERE c.genres LIKE $1
        ORDER BY c.views DESC LIMIT 48`,
       [`%"${name}"%`]
     );
