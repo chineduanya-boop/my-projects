@@ -937,6 +937,18 @@ input[type="checkbox"]:checked ~ .toggle-switch::after { transform: translateX(1
 }
 .adult-gate-actions .confirm { background: var(--red); border-color: var(--red); color: #fff; }
 
+/* Full catalogue index on /browse — restores crawlable links to every book page.
+   See the note in the /browse route in server.js. */
+.catalogue-index { grid-column: 1 / -1; margin-top: 32px; }
+.catalogue-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 6px 18px; margin-top: 12px;
+}
+.catalogue-grid a {
+  color: var(--text2); font-size: 13.5px; padding: 3px 0; line-height: 1.45;
+}
+.catalogue-grid a:hover { color: var(--red); }
+
 /* Book-page overview + reader questions. Book pages are the proven ranking surface,
    so this is where the content investment goes — see serveComicPage() in server.js. */
 .book-overview, .book-faq { margin-top: 26px; }

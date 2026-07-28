@@ -1331,14 +1331,46 @@ app.get('/browse', async (req, res) => {
     const countText = `${total} comic${total !== 1 ? 's' : ''} found`;
     const gridHtml  = comicsRes.rows.length ? comicsRes.rows.map(ssrComicCard).join('') : '';
 
+    // ── Full catalogue index ─────────────────────────────────────────────────
+    // The grid above server-renders 24 rows and the rest arrive by client-side
+    // "load more", so 17 of the 41 books had no crawlable link from /browse at all.
+    // Search Console confirmed the damage: URL Inspection on those titles reported
+    // "URL is unknown to Google" with "Referring page: None detected", even though
+    // every one of them is present in sitemap-comics.xml. A sitemap offers discovery,
+    // not importance — without an internal link Google had little reason to fetch them.
+    //
+    // Same approach as the chapter archive on book pages: a compact text index that
+    // restores crawl depth without disturbing the grid or its pagination. Unfiltered
+    // /browse only, so it stays a canonical catalogue listing rather than a duplicate
+    // of every facet.
+    let catalogueHtml = '';
+    if (!genre && !status && !search && total > comicsRes.rows.length) {
+      const { rows: all } = await pool.query(
+        `SELECT title, slug FROM comics c WHERE ${SAFE} AND slug IS NOT NULL AND slug <> ''
+         ORDER BY title ASC`);
+      if (all.length) {
+        catalogueHtml = `
+        <nav class="catalogue-index" aria-label="All comics">
+          <h2><span class="accent-bar"></span> All ${all.length} comics A–Z</h2>
+          <div class="catalogue-grid">${
+            all.map(c => `<a href="/${c.slug}">${esc(c.title)}</a>`).join('')
+          }</div>
+        </nav>`;
+      }
+    }
+
     const popularCover = await getPopularCover();
     const html = browseHtml
-      .replace('<!--SSR:browseTitle-->', esc(pageTitle))
+      // Replace the placeholder AND the static fallback text after it, the way the genre
+      // route does. Replacing only the comment left both strings in place, so the h1 on
+      // /browse rendered "All ComicsAll Comics" — and "Search: \"x\"All Comics" once a
+      // filter was applied.
+      .replace('<!--SSR:browseTitle-->All Comics', esc(pageTitle))
       .replace('<!--SSR:browseCount-->', esc(countText))
       .replace('<!--SSR:genreIntro-->',  '')
       .replace('<!--SSR:genreRelated-->', '')
       .replace('<!--SSR:genreNav-->',    await genreNavHtml())
-      .replace('<!--SSR:browseGrid-->',  gridHtml)
+      .replace('<!--SSR:browseGrid-->',  gridHtml + catalogueHtml)
       .replaceAll('__OG_IMAGE__',        esc(popularCover))
       // Must land BEFORE browse.js â€” see the note on the home route.
       .replace(/<script src="\/js\/browse\.js/,
