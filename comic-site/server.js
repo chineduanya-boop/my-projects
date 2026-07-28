@@ -20,17 +20,64 @@ const { initDb, pool } = require('./database/db');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const SITE_URL = 'https://mangvault.com';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'changeme';
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+// Cloudflare -> Railway -> here, so the socket address is always a proxy. Without this
+// req.ip is the proxy for every visitor, which would put all login attempts in one
+// rate-limit bucket, and `cookie.secure` would never send a cookie at all because
+// express-session cannot see that the original request was HTTPS.
+app.set('trust proxy', true);
+
+// ── Credentials ───────────────────────────────────────────────────────────────
+// These used to fall back to 'changeme' / 'mv-super-secret-session-key-2024'. If an env
+// var ever went missing on Railway the site would keep serving happily with credentials
+// that are published in this repo's history — a silent full compromise of the admin panel.
+//
+// Failing the whole process instead would crash-loop the public site (restartPolicyType is
+// ALWAYS), taking down 74 comics because of an admin misconfiguration. So these fail
+// *secure* rather than loud: the reader-facing site stays up and only admin login is
+// disabled until the environment is fixed.
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
+const ADMIN_LOGIN_ENABLED = ADMIN_PASSWORD.length >= 8 && ADMIN_PASSWORD !== 'changeme';
+if (!ADMIN_LOGIN_ENABLED) {
+  console.error('[security] ADMIN_PASSWORD is missing, too short, or the known default — '
+    + 'admin login is DISABLED until it is set (min 8 chars). The public site is unaffected.');
+}
+
+// A predictable session secret lets anyone mint a cookie that passes as an admin session.
+// A random one per boot is strictly safer than a published constant: the only cost is that
+// existing sessions are invalidated on restart, which for a single admin means re-logging in.
+let SESSION_SECRET = process.env.SESSION_SECRET;
+if (!SESSION_SECRET) {
+  SESSION_SECRET = require('crypto').randomBytes(32).toString('hex');
+  console.error('[security] SESSION_SECRET is not set — using a random per-boot secret. '
+    + 'Admin sessions will not survive a restart until this is configured.');
+}
 
 app.use(compression());
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'mv-secret-key-2024',
+  secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 7 * 24 * 60 * 60 * 1000, httpOnly: true, secure: false },
+  name: 'mv.sid',
+  cookie: {
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    httpOnly: true,
+    // secure was hardcoded false, so the admin session cookie was allowed to travel over
+    // plain HTTP. 'auto' rather than IS_PROD deliberately: .env sets NODE_ENV=production
+    // on the dev machine too, so keying off that flag marked the cookie HTTPS-only over
+    // local http and locked admin login out of localhost entirely. 'auto' asks the actual
+    // request instead — HTTPS in production (via X-Forwarded-Proto, hence `trust proxy`
+    // above), plain http on localhost.
+    secure: 'auto',
+    // Without sameSite the cookie rode along on cross-site requests, making every
+    // state-changing admin route (upload, delete) CSRF-able from any page the admin
+    // visited while logged in. 'lax' still allows the top-level redirect after login.
+    sameSite: 'lax',
+  },
 }));
 // index: false is load-bearing. express.static otherwise answers "/" with the raw
 // public/index.html before the SSR route below ever runs, which served Google an
@@ -151,15 +198,91 @@ function requireAdmin(req, res, next) {
 }
 
 // â”€â”€ Login / Logout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Login throttling ──────────────────────────────────────────────────────────
+// /admin/login accepted unlimited attempts from the open internet against a single
+// password, so the admin panel — which can upload and delete every comic and chapter —
+// was brute-forceable at whatever rate an attacker cared to send.
+//
+// Hand-rolled rather than express-rate-limit because E: has no room to install anything,
+// and this is one endpoint. Two independent buckets:
+//   per-IP    stops the obvious case.
+//   global    stops the same attacker rotating IPs (X-Forwarded-For is spoofable once
+//             `trust proxy` is on, so per-IP alone is not a real ceiling).
+const LOGIN_MAX_PER_IP = 5;
+const LOGIN_MAX_GLOBAL = 30;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+
+const _loginFails = new Map();   // ip -> { n, first }
+let _globalFails = { n: 0, first: Date.now() };
+
+// Cloudflare sets CF-Connecting-IP and it is the most trustworthy hop available here.
+const clientIp = (req) => req.get('cf-connecting-ip') || req.ip || 'unknown';
+
+function loginBlocked(ip) {
+  const now = Date.now();
+  if (now - _globalFails.first > LOGIN_WINDOW_MS) _globalFails = { n: 0, first: now };
+  if (_globalFails.n >= LOGIN_MAX_GLOBAL) return true;
+  const e = _loginFails.get(ip);
+  if (!e) return false;
+  if (now - e.first > LOGIN_WINDOW_MS) { _loginFails.delete(ip); return false; }
+  return e.n >= LOGIN_MAX_PER_IP;
+}
+
+function noteLoginFail(ip) {
+  const now = Date.now();
+  const e = _loginFails.get(ip);
+  if (!e || now - e.first > LOGIN_WINDOW_MS) _loginFails.set(ip, { n: 1, first: now });
+  else e.n += 1;
+  _globalFails.n += 1;
+  console.warn(`[security] failed admin login from ${ip} (${_loginFails.get(ip).n}/${LOGIN_MAX_PER_IP})`);
+}
+
+// Unbounded otherwise: one entry per attacking IP would sit in memory forever.
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, e] of _loginFails) if (now - e.first > LOGIN_WINDOW_MS) _loginFails.delete(ip);
+}, LOGIN_WINDOW_MS).unref();
+
+// A plain === leaks the length and returns early on the first differing byte. The signal
+// is tiny over a network, but constant-time comparison costs nothing here.
+function passwordMatches(supplied) {
+  const crypto = require('crypto');
+  const a = Buffer.from(String(supplied || ''), 'utf8');
+  const b = Buffer.from(ADMIN_PASSWORD, 'utf8');
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
 app.get('/admin/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 
 app.post('/admin/login', (req, res) => {
-  if (req.body.password === ADMIN_PASSWORD) {
-    req.session.isAdmin = true;
-    res.redirect('/admin');
-  } else {
-    res.redirect('/admin/login?error=1');
+  const ip = clientIp(req);
+
+  if (!ADMIN_LOGIN_ENABLED) {
+    console.error('[security] admin login attempt while ADMIN_PASSWORD is unset — rejected.');
+    return res.redirect('/admin/login?error=disabled');
   }
+  if (loginBlocked(ip)) {
+    console.warn(`[security] admin login throttled for ${ip}`);
+    // Not res.status(429).redirect() — express's redirect() resets statusCode to 302, so
+    // the 429 would be silently discarded. Redirect for the human, and let the log carry
+    // the throttle signal.
+    return res.redirect('/admin/login?error=throttled');
+  }
+
+  if (passwordMatches(req.body.password)) {
+    _loginFails.delete(ip);
+    // Prevent session fixation: a pre-login cookie must not be the one that ends up
+    // carrying admin rights.
+    return req.session.regenerate((err) => {
+      if (err) { console.error('[security] session regenerate failed', err.message); return res.redirect('/admin/login?error=1'); }
+      req.session.isAdmin = true;
+      res.redirect('/admin');
+    });
+  }
+
+  noteLoginFail(ip);
+  res.redirect('/admin/login?error=1');
 });
 
 app.get('/admin/logout', (req, res) => {

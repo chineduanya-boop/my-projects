@@ -75,8 +75,20 @@
     <a href="/" class="back">â† Back to site</a>
   </div>
   <script>
+    // The server distinguishes a wrong password from a throttle and from admin login
+    // being disabled for a missing ADMIN_PASSWORD. Showing "incorrect password" for all
+    // three sends you hunting for the wrong problem.
+    const MESSAGES = {
+      throttled: 'Too many failed attempts. Try again in 15 minutes.',
+      disabled: 'Admin login is disabled: ADMIN_PASSWORD is not configured on the server.',
+    };
     const params = new URLSearchParams(location.search);
-    if (params.get('error')) document.getElementById('errorMsg').style.display = 'block';
+    const err = params.get('error');
+    if (err) {
+      const box = document.getElementById('errorMsg');
+      if (MESSAGES[err]) box.textContent = MESSAGES[err];
+      box.style.display = 'block';
+    }
   </script>
 </body>
 </html>
