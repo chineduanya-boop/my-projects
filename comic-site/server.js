@@ -373,7 +373,12 @@ app.get('/sitemap-comics.xml', async (req, res) => {
           const image = c.cover_image
             ? `<image:image><image:loc>${xmlEsc(c.cover_image)}</image:loc><image:title>${t}</image:title><image:caption>Read ${t} free online on MangVault</image:caption></image:image>`
             : '';
-          return `<url><loc>${SITE_URL}/${c.slug}</loc>${date ? `<lastmod>${date}</lastmod>` : ''}<changefreq>weekly</changefreq><priority>0.8</priority>${image}</url>`;
+          // 0.9, above the 0.5 on chapter URLs. Book pages are the proven earners here
+          // (/noblesse and /madam rank; no chapter page does) and there are 43 of them
+          // against 8,537 chapters, so this is where crawl attention should go. Priority
+          // is a weak hint at best — the real weighting is the content on the page — but
+          // it should at least point the same direction.
+          return `<url><loc>${SITE_URL}/${c.slug}</loc>${date ? `<lastmod>${date}</lastmod>` : ''}<changefreq>weekly</changefreq><priority>0.9</priority>${image}</url>`;
         }),
       ];
       return urlset(urls, ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"');
@@ -438,8 +443,9 @@ app.get('/sitemap-chapters-:page.xml', async (req, res) => {
       );
       const urls = rows.map(r => {
         const date = isoDay(r.created_at);
+        // 0.5, below the 0.9 on book pages — see the note in sitemap-comics.
         return `<url><loc>${SITE_URL}${chapterUrl(r.slug, r.chapter_number)}</loc>${
-          date ? `<lastmod>${date}</lastmod>` : ''}<changefreq>monthly</changefreq><priority>0.6</priority></url>`;
+          date ? `<lastmod>${date}</lastmod>` : ''}<changefreq>monthly</changefreq><priority>0.5</priority></url>`;
       });
       return urlset(urls);
     });
@@ -841,6 +847,83 @@ async function serveComicPage(comic, comicId, req, res) {
         </button>
       </div>` : '';
 
+  // ── Book-page weighting ─────────────────────────────────────────────────────
+  // Book pages are where this site actually ranks: /noblesse and /madam appear in
+  // Google today, while zero chapter pages do. Chapter pages are ~264 near-identical
+  // words each and there are 8,537 of them, which is the pattern Google indexes
+  // selectively at best. So the content investment goes here, on the 43 pages that
+  // have already proven they can rank, rather than spread across the long tail.
+  //
+  // Everything below is generated from data we hold — no invented facts — and answers
+  // the questions people actually type: how many chapters, is it finished, where do I
+  // start, when was it last updated.
+  const primaryGenres = genres.filter(g => g !== 'Manhwa' && g !== 'Manga');
+  const isComplete = /complete/i.test(comic.status || '');
+  const latestDate = chapters.length ? chapters.reduce(
+    (a, c) => (c.created_at && (!a || new Date(c.created_at) > new Date(a)) ? c.created_at : a), null) : null;
+  const aOrAn = (w) => (/^[aeiou]/i.test(String(w || '')) ? 'an' : 'a');
+
+  // Chapter numbering is not dense: Solo Leveling holds 172 chapters numbered 0â€“200.
+  // Quoting the count and the range side by side reads like a contradiction, and worse,
+  // announcing a "complete" series as readable start-to-finish when 28 chapters are
+  // missing sends the reader straight to a competitor. Detect the gap and say the true
+  // thing instead. Tolerance of 1 absorbs half-chapters (43.5) and 0-indexed prologues.
+  const span = firstChapter && lastChapter
+    ? Number(lastChapter.chapter_number) - Number(firstChapter.chapter_number) + 1 : 0;
+  const hasGaps = span - chapters.length > 1;
+
+  const overview = `
+    <section class="book-overview">
+      <h2><span class="accent-bar"></span> About ${esc(comic.title)}</h2>
+      <p>${esc(comic.title)} is ${aOrAn(primaryGenres[0] || (genres.includes('Manhwa') ? 'manhwa' : 'comic'))}${
+        primaryGenres.length ? ' ' + esc(primaryGenres.slice(0, 2).join(', ').toLowerCase()) : ''} ${
+        esc(genres.includes('Manhwa') ? 'manhwa' : genres.includes('Manga') ? 'manga' : 'comic')
+      }${comic.author && comic.author !== 'Unknown' ? ` by ${esc(comic.author)}` : ''}${
+        comic.artist && comic.artist !== 'Unknown' && comic.artist !== comic.author ? `, illustrated by ${esc(comic.artist)}` : ''
+      }. ${chapters.length} chapter${chapters.length === 1 ? '' : 's'} ${chapters.length === 1 ? 'is' : 'are'} available to read free on MangVault, with no account required${
+        isComplete ? ', and the series has finished publishing' : ', and the series is still ongoing'
+      }.${latestDate ? ` The most recent chapter here was added on ${formatDateSSR(latestDate)}.` : ''}</p>
+      ${primaryGenres.length ? `<p>Readers who enjoy ${esc(primaryGenres.slice(0, 3).join(', '))} titles tend to like this one. You can browse more in ${
+        primaryGenres.slice(0, 3).map(g => `<a href="/genre/${genreSlug(g)}">${esc(g)}</a>`).join(', ')
+      }.</p>` : ''}
+    </section>
+
+    <section class="book-faq">
+      <h2><span class="accent-bar"></span> Reading ${esc(comic.title)}</h2>
+      <dl>
+        <dt>How many chapters does ${esc(comic.title)} have?</dt>
+        <dd>${chapters.length} chapter${chapters.length === 1 ? '' : 's'} ${chapters.length === 1 ? 'is' : 'are'} available to read here${
+          lastChapter ? `, up to chapter ${lastChapter.chapter_number}` : ''}.${
+          hasGaps ? ' Some chapters in that range are not available yet.' : ''}</dd>
+        <dt>Is ${esc(comic.title)} finished?</dt>
+        <dd>${isComplete
+          ? `${esc(comic.title)} has finished publishing${hasGaps
+              ? `, and ${chapters.length} of its chapters are available here.`
+              : ', so you can read it start to finish here.'}`
+          : `Not yet. ${esc(comic.title)} is ongoing, and new chapters are added here as they release.`}</dd>
+        <dt>Where should I start?</dt>
+        <dd>${firstChapter
+          ? `Begin with <a href="${chapterUrl(slug, firstChapter.chapter_number)}">chapter ${firstChapter.chapter_number}</a>. If you are catching up, the <a href="${chapterUrl(slug, lastChapter.chapter_number)}">latest chapter</a> is ${lastChapter.chapter_number}.`
+          : 'Chapters are being added — check back shortly.'}</dd>
+        <dt>Is it free to read?</dt>
+        <dd>Yes. Every chapter of ${esc(comic.title)} is free on MangVault, with no subscription or sign-up.</dd>
+      </dl>
+    </section>`;
+
+  const bookRelated = await getRelatedComics(comic.id, genres);
+  const bookRelatedHtml = bookRelated.length ? `
+    <div class="chapters-section related-section">
+      <h2><span class="accent-bar"></span> Similar series</h2>
+      <p class="related-intro">Free series on MangVault that readers of ${esc(comic.title)} often start next.</p>
+      <div class="related-grid">
+        ${bookRelated.map(r => `<a class="related-card" href="/${r.slug}">
+          ${r.cover_image ? `<img src="${esc(r.cover_image)}" alt="${esc(r.title)} cover" loading="lazy" width="86" height="122" />` : '<span class="related-card-noimg"></span>'}
+          <span class="related-card-title">${esc(r.title)}</span>
+          <span class="related-card-meta">${r.chapter_count} chapters</span>
+        </a>`).join('')}
+      </div>
+    </div>` : '';
+
   const ssrBody = `
     <div class="comic-detail-hero">
       <div class="comic-detail-cover">${coverHtml}</div>
@@ -861,6 +944,7 @@ async function serveComicPage(comic, comicId, req, res) {
         </div>
       </div>
     </div>
+    ${overview}
     <div class="chapters-section">
       <h2><span class="accent-bar"></span> Chapters <span style="font-size:14px;color:var(--text3);font-weight:400">(${chapters.length})</span></h2>
       ${chapterToolbar}
@@ -875,6 +959,7 @@ async function serveComicPage(comic, comicId, req, res) {
         newestFirst.map(ch => `<a href="${chapterUrl(slug, ch.chapter_number)}">${ch.chapter_number}</a>`).join('')
       }</div>
     </nav>` : ''}
+    ${bookRelatedHtml}
     <script type="application/json" id="chapterData">${chapterData.replace(/</g, '\\u003c')}</script>`;
 
   const html = comicHtml

@@ -937,6 +937,22 @@ input[type="checkbox"]:checked ~ .toggle-switch::after { transform: translateX(1
 }
 .adult-gate-actions .confirm { background: var(--red); border-color: var(--red); color: #fff; }
 
+/* Book-page overview + reader questions. Book pages are the proven ranking surface,
+   so this is where the content investment goes — see serveComicPage() in server.js. */
+.book-overview, .book-faq { margin-top: 26px; }
+.book-overview p {
+  color: var(--text2); font-size: 14.5px; line-height: 1.7; margin: 10px 0 0;
+  max-width: 78ch;
+}
+.book-overview a, .book-faq a { color: var(--red); }
+.book-faq dl { margin: 12px 0 0; max-width: 78ch; }
+.book-faq dt {
+  font-size: 14.5px; font-weight: 650; color: var(--text); margin-top: 16px;
+}
+.book-faq dd {
+  margin: 5px 0 0; color: var(--text2); font-size: 14px; line-height: 1.65;
+}
+
 /* Related series block on chapter pages — see getRelatedComics() in server.js */
 .related-section { margin-top: 26px; }
 .related-intro { color: var(--text2); font-size: 13.5px; margin: 6px 0 16px; }
