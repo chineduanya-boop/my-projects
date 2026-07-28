@@ -25,7 +25,11 @@
  *   node request-indexing.js --go                submit, default 10 URLs
  *   node request-indexing.js --go --limit 5      submit fewer
  *   node request-indexing.js --status            show progress across runs
+ *   node request-indexing.js --go --top-first    most-viewed first (default is least)
  *   node request-indexing.js --go --profile "Profile 1"
+ *
+ * Order: least-viewed first by default. See the note in bookUrls() — the popular titles
+ * are already indexed, so spending quota top-down wastes it on pages Google has.
  *
  * Progress is written to .indexing-state.json so repeat runs resume where the last
  * one stopped rather than burning quota on URLs already submitted.
@@ -62,9 +66,19 @@ const writeState = (s) => fs.writeFileSync(STATE, JSON.stringify(s, null, 2));
 
 async function bookUrls() {
   const xml = await fetch(`${SITE}/sitemap-comics.xml`).then(r => r.text());
-  return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)]
+  const urls = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)]
     .map(m => m[1])
     .filter(u => u !== `${SITE}/` && u !== `${SITE}/browse`);
+
+  // sitemap-comics.xml is ordered by views DESC, and spending a ~10/day quota in that
+  // order is backwards. Checking eight titles by hand in Search Console on 2026-07-28
+  // found the high-view ones (solo-leveling, and noblesse via search) already indexed,
+  // while every low-view title — the-max-level-returner, the-hero-returns, nano-machine,
+  // star-embracing-swordmaster, academys-genius-swordmaster, pick-me-up-infinite-gacha,
+  // revenge-of-the-iron-blooded-sword-hound — came back "URL is unknown to Google".
+  // Popular titles get found on their own; the tail is what needs the push. So default
+  // to least-viewed first and keep --top-first as the escape hatch.
+  return has('top-first') ? urls : urls.reverse();
 }
 
 (async () => {
