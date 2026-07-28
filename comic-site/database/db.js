@@ -51,6 +51,23 @@ async function initDb() {
 
     CREATE INDEX IF NOT EXISTS idx_chapters_comic ON chapters(comic_id);
     CREATE INDEX IF NOT EXISTS idx_pages_chapter ON pages(chapter_id);
+
+    -- First-party traffic log. comics.views / chapters.views are lifetime counters with
+    -- no timestamp, so they can only ever go up — there was no way to answer "did
+    -- traffic drop last week?" from our own data. This table is the time series that
+    -- question needs. One row per page request, aggregated by /api/admin/traffic.
+    CREATE TABLE IF NOT EXISTS traffic_log (
+      id BIGSERIAL PRIMARY KEY,
+      path TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      referrer_host TEXT DEFAULT '',
+      is_bot INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_traffic_created ON traffic_log(created_at);
+    CREATE INDEX IF NOT EXISTS idx_traffic_kind    ON traffic_log(kind, created_at);
+    CREATE INDEX IF NOT EXISTS idx_traffic_ref     ON traffic_log(referrer_host, created_at);
   `);
 
   // Add pdf_url column if it doesn't exist

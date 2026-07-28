@@ -246,4 +246,45 @@ router.delete('/chapters/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── Traffic reporting ─────────────────────────────────────────────────────────
+// Reads the traffic_log time series written by the middleware in server.js. This is
+// the answer to "have views dropped?" — comics.views is a lifetime counter and can
+// only ever rise, so it cannot show a decline no matter what happens to real traffic.
+//
+//   GET /api/admin/traffic?days=30          daily totals, split human vs bot
+//   GET /api/admin/traffic?days=30&by=kind  daily totals per page type
+//   GET /api/admin/traffic?days=30&by=ref   top external referrers
+router.get('/traffic', async (req, res) => {
+  const days = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 180);
+  const by = req.query.by || 'day';
+  const since = `NOW() - INTERVAL '${days} days'`;
+  try {
+    if (by === 'ref') {
+      const { rows } = await pool.query(
+        `SELECT referrer_host, COUNT(*)::int AS hits
+           FROM traffic_log
+          WHERE created_at >= ${since} AND is_bot = 0 AND referrer_host <> ''
+          GROUP BY referrer_host ORDER BY hits DESC LIMIT 50`);
+      return res.json({ days, by, rows });
+    }
+    if (by === 'kind') {
+      const { rows } = await pool.query(
+        `SELECT created_at::date AS day, kind, COUNT(*)::int AS hits
+           FROM traffic_log
+          WHERE created_at >= ${since} AND is_bot = 0
+          GROUP BY day, kind ORDER BY day DESC, hits DESC`);
+      return res.json({ days, by, rows });
+    }
+    const { rows } = await pool.query(
+      `SELECT created_at::date AS day,
+              COUNT(*) FILTER (WHERE is_bot = 0)::int AS humans,
+              COUNT(*) FILTER (WHERE is_bot = 1)::int AS bots,
+              COUNT(DISTINCT referrer_host) FILTER (WHERE is_bot = 0 AND referrer_host <> '')::int AS referrers
+         FROM traffic_log
+        WHERE created_at >= ${since}
+        GROUP BY day ORDER BY day DESC`);
+    res.json({ days, by: 'day', rows });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;

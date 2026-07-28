@@ -82,7 +82,56 @@
     });
   }
 
-  function boot() { init(); initGate(); }
+  // ── Discovery prompt ────────────────────────────────────────────────────────
+  // The toggle defaults to off, and it has to stay that way: every catalogue grid is
+  // fetched client-side with adult=${adultParam()}, and Googlebot executes JS. Defaulting
+  // it on would put adult titles straight into the DOM Google renders, which is the
+  // SafeSearch exposure the SAFE predicate exists to prevent.
+  //
+  // But an unlabelled eye icon in the header is not a discoverable control, and 33 of 74
+  // titles sit behind it — readers who wanted them could no longer find them by browsing.
+  // This is the compromise: a one-time, dismissible prompt that makes the choice explicit.
+  // It is injected by JS and never server-rendered, so the crawler-visible HTML is
+  // unchanged, and it names no adult titles — only a count.
+  const DISMISS_KEY = 'mv_adult_prompt_dismissed';
+
+  async function initPrompt() {
+    if (window.ADULT_ON) return;
+    try { if (localStorage.getItem(DISMISS_KEY) === '1') return; } catch { return; }
+    // Only where there is a catalogue to expand.
+    const p = location.pathname;
+    if (p !== '/' && p !== '/browse' && !p.startsWith('/genre/')) return;
+
+    let hidden = 0;
+    try {
+      const [all, safe] = await Promise.all([
+        fetch('/api/comics?limit=1&adult=all').then(r => r.json()),
+        fetch('/api/comics?limit=1&adult=0').then(r => r.json()),
+      ]);
+      hidden = (all.total || 0) - (safe.total || 0);
+    } catch { return; }
+    if (hidden < 1) return;
+
+    const bar = document.createElement('div');
+    bar.className = 'adult-prompt';
+    bar.innerHTML = `
+      <span><strong>${hidden}</strong> mature (18+) title${hidden === 1 ? '' : 's'} are hidden from this list.</span>
+      <span class="adult-prompt-actions">
+        <button type="button" class="adult-prompt-show">Show them</button>
+        <button type="button" class="adult-prompt-hide">Keep hidden</button>
+      </span>`;
+    document.body.appendChild(bar);
+
+    const close = () => { try { localStorage.setItem(DISMISS_KEY, '1'); } catch {} bar.remove(); };
+    bar.querySelector('.adult-prompt-hide').addEventListener('click', close);
+    bar.querySelector('.adult-prompt-show').addEventListener('click', () => {
+      setOn(true);
+      try { localStorage.setItem(DISMISS_KEY, '1'); } catch {}
+      location.reload();
+    });
+  }
+
+  function boot() { init(); initGate(); initPrompt(); }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();

@@ -35,12 +35,118 @@ app.use(session({
 // index: false is load-bearing. express.static otherwise answers "/" with the raw
 // public/index.html before the SSR route below ever runs, which served Google an
 // empty shell â€” no hero, no comic cards, no <h1>.
-app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h', index: false }));
+// maxAge was a flat '1h' for everything. That silently broke deploys: a returning reader
+// kept running the previous build's JS/CSS for up to an hour with no way to revalidate,
+// because these URLs are unversioned. Split by asset type instead —
+//   js/css: revalidate every time. ETag makes the common case a cheap empty 304, and a
+//           deploy takes effect on the next navigation instead of an hour later.
+//   images/fonts: content-addressed in practice (covers live on R2, these are static
+//           chrome), so a long TTL is safe and worth having.
+app.use(express.static(path.join(__dirname, 'public'), {
+  index: false,
+  etag: true,
+  setHeaders(res, filePath) {
+    if (/\.(js|css)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'no-cache');
+    } else if (/\.(png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|eot)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=2592000');
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+    }
+  },
+}));
+
+// ── Traffic logging ───────────────────────────────────────────────────────────
+// Writes are buffered and flushed as one multi-row INSERT. A per-request INSERT would
+// be a second round trip on every page load against a pool capped at 10 clients
+// (Supabase session-mode limit), which is what caused EMAXCONNSESSION before.
+const BOT_RE = /bot|crawler|spider|crawling|slurp|bingpreview|facebookexternalhit|headless|lighthouse|pagespeed|curl|wget|python-requests|axios|monitor|uptime/i;
+
+// Bucket the path so daily aggregates stay readable at 10k+ chapter URLs.
+function classifyPath(p) {
+  if (p === '/') return 'home';
+  if (p === '/browse') return 'browse';
+  if (p.startsWith('/genre/')) return 'genre';
+  if (/^\/[^/]+\/chapter-/.test(p)) return 'chapter';
+  if (/^\/(reader|comic)\//.test(p)) return 'legacy';
+  if (/^\/[^/]+$/.test(p)) return 'comic';
+  return 'other';
+}
+
+let _trafficBuf = [];
+const TRAFFIC_MAX_BUF = 200;
+
+async function flushTraffic() {
+  if (!_trafficBuf.length) return;
+  const batch = _trafficBuf;
+  _trafficBuf = [];
+  // 5 columns per row -> $1..$5, $6..$10, ...
+  const values = batch.map((_, i) =>
+    `($${i * 5 + 1}, $${i * 5 + 2}, $${i * 5 + 3}, $${i * 5 + 4}, $${i * 5 + 5})`).join(', ');
+  const params = batch.flatMap(r => [r.path, r.kind, r.ref, r.bot, r.at]);
+  try {
+    await pool.query(
+      `INSERT INTO traffic_log (path, kind, referrer_host, is_bot, created_at) VALUES ${values}`,
+      params
+    );
+  } catch (err) {
+    // Losing a traffic sample must never affect the response the reader already got.
+    console.error('[traffic flush]', err.message);
+  }
+}
+
+app.use((req, res, next) => {
+  // Only page requests. Assets are already answered by express.static above; this
+  // skips the API, admin and anything with a file extension.
+  if (req.method !== 'GET') return next();
+  const p = req.path;
+  if (p.startsWith('/api') || p.startsWith('/admin') || p.startsWith('/uploads')
+      || p.startsWith('/health') || p.startsWith('/sitemap') || p.includes('.')) return next();
+
+  let ref = '';
+  try {
+    const r = req.get('referer');
+    if (r) {
+      const h = new URL(r).hostname.replace(/^www\./, '');
+      // Our own pages are navigation, not acquisition — track only external referrers.
+      // Compare against the request's own host rather than a hardcoded domain, so
+      // localhost self-referrals don't show up as an acquisition source in dev.
+      const self = (req.get('host') || '').replace(/^www\./, '').split(':')[0];
+      if (h !== self && h !== 'mangvault.com') ref = h.slice(0, 120);
+    }
+  } catch {}
+
+  _trafficBuf.push({
+    path: p.slice(0, 300),
+    kind: classifyPath(p),
+    ref,
+    bot: BOT_RE.test(req.get('user-agent') || '') ? 1 : 0,
+    at: new Date(),
+  });
+
+  if (_trafficBuf.length >= TRAFFIC_MAX_BUF) flushTraffic();
+  next();
+});
+
+setInterval(flushTraffic, 30 * 1000).unref();
+
+// Keep the table bounded — six months is plenty to spot a trend.
+setInterval(() => {
+  pool.query("DELETE FROM traffic_log WHERE created_at < NOW() - INTERVAL '180 days'")
+    .catch(err => console.error('[traffic prune]', err.message));
+}, 24 * 60 * 60 * 1000).unref();
+
+// Don't drop the tail of the buffer on a Railway redeploy.
+process.on('SIGTERM', () => { flushTraffic().finally(() => process.exit(0)); });
 
 // â”€â”€ Auth middleware â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function requireAdmin(req, res, next) {
   if (req.session && req.session.isAdmin) return next();
-  if (req.path.startsWith('/api')) return res.status(401).json({ error: 'Unauthorized' });
+  // originalUrl, not path: this middleware is mounted at /api/admin, and inside a mounted
+  // router req.path is relative to the mount point ('/comics'), so it never started with
+  // '/api'. Every unauthenticated admin API call was answered with a 302 to the HTML login
+  // page, which a fetch() then tried to parse as JSON.
+  if (req.originalUrl.startsWith('/api')) return res.status(401).json({ error: 'Unauthorized' });
   res.redirect('/admin/login');
 }
 
@@ -315,6 +421,64 @@ const genreSlug = (g) => g.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-
 // A genre needs a real shelf behind it to deserve an indexable landing page;
 // below this it is rendered but left noindex so we don't ship thin pages.
 const GENRE_INDEX_MIN = 3;
+
+// ── Related series ────────────────────────────────────────────────────────────
+// Two problems, one block. Chapter pages average ~207 words, which is thin for the
+// 8,537 of them now indexable; and two titles carry 89% of all views, so almost every
+// internal link points at the same places.
+//
+// Ordering by views ASC is deliberate — the point is to give exposure to titles that
+// currently have none, not to re-promote Noblesse on 10,000 more pages. Cached per
+// comic because this renders on the highest-traffic route on the site.
+const _relatedCache = new Map();
+const RELATED_TTL = 10 * 60 * 1000;
+
+async function getRelatedComics(comicId, genres, limit = 6) {
+  const key = `${comicId}`;
+  const hit = _relatedCache.get(key);
+  if (hit && Date.now() - hit.ts < RELATED_TTL) return hit.rows;
+
+  const primary = (genres || []).filter(g => g !== 'Manhwa' && g !== 'Manga').slice(0, 3);
+  const params = [comicId, limit];
+  let genreClause = '';
+  if (primary.length) {
+    genreClause = 'AND (' + primary.map((_, i) => `c.genres LIKE $${i + 3}`).join(' OR ') + ')';
+    primary.forEach(g => params.push(`%"${g}"%`));
+  }
+
+  try {
+    let { rows } = await pool.query(
+      `SELECT c.title, c.slug, c.cover_image, c.views,
+              (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) AS chapter_count
+         FROM comics c
+        WHERE ${SAFE} AND c.id <> $1 AND c.slug IS NOT NULL AND c.slug <> ''
+          AND (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) > 0
+          ${genreClause}
+        ORDER BY c.views ASC
+        LIMIT $2`, params);
+    // A niche-genre title can come back short; top up ignoring genre so the block is
+    // never half-empty.
+    if (rows.length < limit) {
+      const have = new Set(rows.map(r => r.slug));
+      const { rows: extra } = await pool.query(
+        `SELECT c.title, c.slug, c.cover_image, c.views,
+                (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) AS chapter_count
+           FROM comics c
+          WHERE ${SAFE} AND c.id <> $1 AND c.slug IS NOT NULL AND c.slug <> ''
+            AND (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) > 0
+          ORDER BY c.views ASC LIMIT $2`, [comicId, limit * 3]);
+      for (const r of extra) {
+        if (rows.length >= limit) break;
+        if (!have.has(r.slug)) { rows.push(r); have.add(r.slug); }
+      }
+    }
+    _relatedCache.set(key, { rows, ts: Date.now() });
+    return rows;
+  } catch (err) {
+    console.error('[related]', err.message);
+    return [];
+  }
+}
 
 let _genreMap = null;
 let _genreMapTs = 0;
@@ -764,6 +928,23 @@ async function serveChapterPage(comic, chapter, chapters, req, res) {
       </a>`;
   }).join('');
 
+  // Related series: real editorial value on an otherwise thin page, and the only place
+  // on the site where internal links deliberately point away from the two titles that
+  // already hold 89% of all views. See getRelatedComics().
+  const related = await getRelatedComics(comic.id, genres);
+  const relatedHtml = related.length ? `
+    <div class="chapters-section related-section">
+      <h2><span class="accent-bar"></span> More ${esc(genres.filter(g => g !== 'Manhwa' && g !== 'Manga')[0] || 'series')} to read</h2>
+      <p class="related-intro">If you are enjoying ${esc(comic.title)}, these free series on MangVault are worth starting next.</p>
+      <div class="related-grid">
+        ${related.map(r => `<a class="related-card" href="/${r.slug}">
+          ${r.cover_image ? `<img src="${esc(r.cover_image)}" alt="${esc(r.title)} cover" loading="lazy" width="86" height="122" />` : '<span class="related-card-noimg"></span>'}
+          <span class="related-card-title">${esc(r.title)}</span>
+          <span class="related-card-meta">${r.chapter_count} chapters</span>
+        </a>`).join('')}
+      </div>
+    </div>` : '';
+
   const context = `<div class="context-comic">
       ${coverImage ? `<div class="context-comic-cover"><a href="${comicUrl}"><img src="${esc(coverImage)}" alt="${esc(comic.title)} cover" loading="lazy" width="92" /></a></div>` : ''}
       <div class="context-comic-body">
@@ -785,7 +966,7 @@ async function serveChapterPage(comic, chapter, chapters, req, res) {
         <a href="${comicUrl}">All ${total} chapters</a>
         ${last ? `<a href="${chapterUrl(comic.slug, last.chapter_number)}">Latest chapter <i class="fa fa-angles-right"></i></a>` : ''}
       </div>
-    </div>`;
+    </div>${relatedHtml}`;
 
   const html = readerHtml
     .replace(/<!--SSR:head-->.*/, metaTags)

@@ -937,6 +937,50 @@ input[type="checkbox"]:checked ~ .toggle-switch::after { transform: translateX(1
 }
 .adult-gate-actions .confirm { background: var(--red); border-color: var(--red); color: #fff; }
 
+/* Related series block on chapter pages — see getRelatedComics() in server.js */
+.related-section { margin-top: 26px; }
+.related-intro { color: var(--text2); font-size: 13.5px; margin: 6px 0 16px; }
+.related-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 14px;
+}
+.related-card { display: flex; flex-direction: column; gap: 6px; }
+.related-card img, .related-card-noimg {
+  width: 100%; aspect-ratio: 86 / 122; object-fit: cover;
+  border-radius: var(--radius); background: var(--bg3); border: 1px solid var(--border);
+  display: block;
+}
+.related-card-title {
+  font-size: 12.5px; font-weight: 600; color: var(--text); line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.related-card-meta { font-size: 11.5px; color: var(--text2); }
+.related-card:hover .related-card-title { color: var(--red); }
+
+/* One-time discovery prompt for the 18+ toggle. Injected by adult.js, never
+   server-rendered — see the note in that file. */
+.adult-prompt {
+  position: fixed; z-index: 997; left: 50%; transform: translateX(-50%);
+  bottom: 18px; width: calc(100% - 32px); max-width: 560px;
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 13px 16px; box-shadow: var(--shadow);
+  font-size: 13.5px; color: var(--text2);
+}
+.adult-prompt strong { color: var(--text); }
+.adult-prompt-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.adult-prompt-actions button {
+  padding: 7px 13px; border-radius: var(--radius); font-size: 13px; font-weight: 600;
+  border: 1px solid var(--border); background: var(--bg3); color: var(--text2);
+  cursor: pointer; white-space: nowrap;
+}
+.adult-prompt-actions .adult-prompt-show {
+  background: var(--red); border-color: var(--red); color: #fff;
+}
+@media (max-width: 560px) {
+  .adult-prompt { flex-direction: column; align-items: stretch; text-align: center; }
+  .adult-prompt-actions button { flex: 1; }
+}
+
 @media (max-width: 700px) { .adult-toggle span { display: none; } }
 
 /* ===== KEYBOARD SHORTCUT OVERLAY ===== */
