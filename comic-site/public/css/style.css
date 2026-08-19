@@ -18,6 +18,18 @@
   --shadow-red: 0 4px 24px rgba(230,57,70,0.35);
 }
 
+/* Readers who have asked their OS to reduce motion get the layout without the movement:
+   no hero slide transition, no card lift, no smooth scroll jumps. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important; scroll-behavior: auto !important;
+  }
+  /* !important because this block sits above the rule it overrides. */
+  .comic-card:hover { transform: none !important; }
+}
+
 /* ===== RESET ===== */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 html { scroll-behavior: smooth; overflow-x: hidden; }
@@ -152,6 +164,12 @@ input, select, textarea { font: inherit; color: inherit; }
   filter: blur(30px) brightness(0.3);
   transform: scale(1.1);
 }
+/* The blur alone left light covers washing out the title text. A scrim anchored to the
+   text side keeps contrast predictable whatever the artwork underneath happens to be. */
+.hero-slide-bg::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(13,13,18,0.92) 0%, rgba(13,13,18,0.55) 55%, rgba(13,13,18,0.25) 100%);
+}
 .hero-slide-inner {
   position: relative; z-index: 1;
   display: flex; gap: 24px; padding: 24px;
@@ -208,13 +226,16 @@ input, select, textarea { font: inherit; color: inherit; }
 .hero-empty i { font-size: 48px; }
 
 /* ===== SECTIONS ===== */
+/* Seven stacked rows of near-identical cards need the gap between a heading and its own
+   row to read as tighter than the gap between one section and the next, or the page
+   flattens into one undifferentiated column. */
 .section {
-  max-width: 1300px; margin: 0 auto 40px;
+  max-width: 1300px; margin: 0 auto 34px;
   padding: 0 20px;
 }
 .section-header {
   display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 .section-title {
   font-size: 20px; font-weight: 700;
@@ -284,11 +305,24 @@ input, select, textarea { font: inherit; color: inherit; }
 .comic-card-meta { font-size: 11px; color: var(--text3); }
 
 /* ===== HORIZONTAL ROW ===== */
+/* These scroll sideways but the scrollbar is 4px and only paints while scrolling, so on
+   a wide screen a full row read as a row that simply ended. The mask fades the trailing
+   edge to signal there is more, and disappears once the row is scrolled to the end. */
 .comics-row {
   display: flex; gap: 16px; overflow-x: auto; padding-bottom: 12px;
   scroll-snap-type: x mandatory;
+  /* No scrollbar-width here — Chrome honours the standard property over the styled
+     ::-webkit-scrollbar rules below, which swaps the dark thumb for a default light one. */
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 92%, transparent 100%);
+          mask-image: linear-gradient(90deg, #000 0%, #000 92%, transparent 100%);
+}
+.comics-row.is-scroll-end {
+  -webkit-mask-image: none;
+          mask-image: none;
 }
 .comics-row::-webkit-scrollbar { height: 4px; }
+.comics-row::-webkit-scrollbar-track { background: transparent; }
+.comics-row::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 .comics-row .comic-card { flex: 0 0 160px; scroll-snap-align: start; }
 
 /* ===== GRID ===== */

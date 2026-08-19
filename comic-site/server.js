@@ -1263,6 +1263,18 @@ app.get('/comic/:id', async (req, res) => {
   }
 });
 
+// Each SSR slot in index.html wraps its own loading fallback:
+//   <!--SSR:name--> <div class="row-loading">…</div> <!--/SSR:name-->
+// Replacing only the opening comment (what this used to do) left every spinner and the
+// "Loading featured comics" block sitting in the DOM behind the rendered cards — the
+// client never clears them either, because main.js returns early when HOME_SSR is set.
+// Swallowing the whole region is what actually removes them.
+//
+// The replacement is passed as a function so that `$&`, `$1` and friends occurring in
+// cover URLs are inserted literally rather than interpreted as substitution patterns.
+const fillSlot = (html, name, content) =>
+  html.replace(new RegExp(`<!--SSR:${name}-->[\\s\\S]*?<!--/SSR:${name}-->`), () => content);
+
 // â”€â”€ Home page â€” SSR all sections so Google sees real content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.get('/', async (req, res) => {
   try {
@@ -1277,7 +1289,18 @@ app.get('/', async (req, res) => {
       pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${BROWSE_ALL} AND c.genres LIKE $1 ORDER BY c.views DESC LIMIT 12`, ['%"Fantasy"%']),
       pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${BROWSE_ALL} AND c.genres LIKE $1 ORDER BY c.views DESC LIMIT 12`, ['%"Martial Arts"%']),
       pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${BROWSE_ALL} ORDER BY c.views DESC LIMIT 12`),
-      pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${BROWSE_ALL} ORDER BY c.views DESC LIMIT 24`),
+      // Same ordering as Most Viewed but starting where that row stops. The hero shows the
+      // top 6 and Most Viewed the top 12, so a third views-DESC block from the top put the
+      // same handful of titles on the page three times over; OFFSET 12 makes this the
+      // continuation of the ranking rather than a repeat of it.
+      //
+      // Sorting views ASC instead was the obvious way to spread internal links onto
+      // neglected titles, and it backfired: the least-viewed titles are almost exactly the
+      // set that sat behind the 18+ wall until today, so the block filled up with explicit
+      // covers in one solid slab at the foot of the home page. Popularity rank is the
+      // honest ordering here — adult titles still appear (Father's Lust is 3rd overall),
+      // just distributed through the catalogue rather than pooled at the bottom.
+      pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${BROWSE_ALL} AND (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) > 0 ORDER BY c.views DESC OFFSET 12 LIMIT 18`),
       pool.query('SELECT genres FROM comics c WHERE ' + BROWSE_ALL),
     ]);
 
@@ -1289,16 +1312,21 @@ app.get('/', async (req, res) => {
       : '<p style="color:var(--text3)">No genres yet.</p>';
 
     const popularCover = heroRes.rows.find(c => c.cover_image)?.cover_image || '';
-    const html = indexHtml
-      .replace('<!--SSR:heroSection-->',    ssrHero(heroRes.rows))
-      .replace('<!--SSR:newReleasesRow-->', ssrRow(newRelRes.rows))
-      .replace('<!--SSR:actionRow-->',      ssrRow(actionRes.rows))
-      .replace('<!--SSR:adventureRow-->',   ssrRow(adventureRes.rows))
-      .replace('<!--SSR:fantasyRow-->',     ssrRow(fantasyRes.rows))
-      .replace('<!--SSR:martialArtsRow-->', ssrRow(martialRes.rows))
-      .replace('<!--SSR:mostViewedRow-->',  ssrRow(mostViewedRes.rows))
-      .replace('<!--SSR:popularGrid-->',    ssrRow(popularRes.rows))
-      .replace('<!--SSR:genreTags-->',      genreTagsHtml)
+
+    const slots = {
+      heroSection:    ssrHero(heroRes.rows),
+      newReleasesRow: ssrRow(newRelRes.rows),
+      actionRow:      ssrRow(actionRes.rows),
+      adventureRow:   ssrRow(adventureRes.rows),
+      fantasyRow:     ssrRow(fantasyRes.rows),
+      martialArtsRow: ssrRow(martialRes.rows),
+      mostViewedRow:  ssrRow(mostViewedRes.rows),
+      popularGrid:    ssrRow(popularRes.rows),
+      genreTags:      genreTagsHtml,
+    };
+    let html = Object.entries(slots).reduce((acc, [name, content]) => fillSlot(acc, name, content), indexHtml);
+
+    html = html
       .replace('<!--SSR:genreNav-->',       await genreNavHtml())
       .replaceAll('__OG_IMAGE__',           esc(popularCover))
       // Must land BEFORE main.js, not before </body>. Injected after the script tag,

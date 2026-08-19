@@ -212,6 +212,7 @@ async function loadNewReleases() {
   try {
     const comics = await fetch(`/api/comics/new-releases`).then(r => r.json());
     el.innerHTML = comics.length ? comics.map(comicCard).join('') : '<p style="color:var(--text3);padding:20px">No releases yet.</p>';
+    initRowFades();
   } catch { el.innerHTML = '<p style="color:var(--text3);padding:20px">Failed to load.</p>'; }
 }
 
@@ -223,6 +224,7 @@ async function loadPopular() {
   try {
     const comics = await fetch(`/api/comics/popular`).then(r => r.json());
     el.innerHTML = comics.length ? comics.map(comicCard).join('') : '<p style="color:var(--text3);padding:20px">No comics yet.</p>';
+    initRowFades();
   } catch { el.innerHTML = '<p style="color:var(--text3);padding:20px">Failed to load.</p>'; }
 }
 
@@ -236,6 +238,7 @@ async function loadGenreRow(genre, elementId) {
     el.innerHTML = data.comics && data.comics.length
       ? data.comics.map(comicCard).join('')
       : `<p style="color:var(--text3);padding:20px">No ${genre} comics yet.</p>`;
+    initRowFades();
   } catch { el.innerHTML = '<p style="color:var(--text3);padding:20px">Failed to load.</p>'; }
 }
 
@@ -249,6 +252,7 @@ async function loadMostViewed() {
     el.innerHTML = data.comics && data.comics.length
       ? data.comics.map(comicCard).join('')
       : '<p style="color:var(--text3);padding:20px">No comics yet.</p>';
+    initRowFades();
   } catch { el.innerHTML = '<p style="color:var(--text3);padding:20px">Failed to load.</p>'; }
 }
 
@@ -265,6 +269,26 @@ async function loadGenreTags() {
   } catch { el.innerHTML = '<p style="color:var(--text3)">Failed to load.</p>'; }
 }
 
+// ── Horizontal row scroll affordance ──────────────────────────────────────────
+// The CSS fades each row's trailing edge to show there is more sideways. Rows that fit
+// entirely on screen have nothing hidden, so the fade would be a lie — clear it for
+// those, and clear it again once a row is scrolled to its end.
+// Safe to call repeatedly — the loaders below re-run it after replacing a row's cards,
+// and the dataset flag keeps listeners from stacking up on the same element.
+function initRowFades() {
+  document.querySelectorAll('.comics-row').forEach(row => {
+    const sync = () => {
+      const atEnd = row.scrollLeft + row.clientWidth >= row.scrollWidth - 2;
+      row.classList.toggle('is-scroll-end', atEnd);
+    };
+    sync();
+    if (row.dataset.fadeBound) return;
+    row.dataset.fadeBound = '1';
+    row.addEventListener('scroll', sync, { passive: true });
+    window.addEventListener('resize', sync, { passive: true });
+  });
+}
+
 loadGenreDropdown();
 renderContinueReading();
 
@@ -277,3 +301,7 @@ loadGenreRow('Martial Arts', 'martialArtsRow');
 loadMostViewed();
 loadPopular();
 loadGenreTags();
+
+// Runs after the loaders above so SSR'd rows are measured as rendered; the loaders that
+// do fetch call it again themselves once their cards land.
+initRowFades();
