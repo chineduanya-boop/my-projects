@@ -133,7 +133,28 @@ Slugs are auto-generated from comic titles on creation (`slugify()` in `db.js`).
 
 ## Adult Content
 
-Comics have an `is_adult` flag. The public API filters adult content out by default (`adult=0`). Pass `adult=1` (only adult) or `adult=all` (everything) as a query param.
+Comics have an `is_adult` flag. **It does not affect what readers see.** The catalogue is
+served whole — home rows, browse grid, genre grids, search and related-series all list all
+74 titles identically. There is no 18+ toggle, interstitial, cover blur or badge on the
+public site, and `/api/comics` takes no `adult` param (a stale one is ignored).
+
+The flag now controls **search-engine exposure only**, via two predicates in `server.js`:
+
+- `BROWSE_ALL` (`1=1`) — every reader-facing query
+- `INDEX_SAFE` (`c.is_adult = 0`) — sitemap-comics.xml, the chapter sitemaps, and the
+  site-wide og:image fallback
+
+Adult book pages stay `index, follow, max-image-preview:none` (findable by name, cover art
+kept out of Google Images) and their URLs live in `sitemap-mature.xml`. Their chapter pages
+stay `noindex`. That posture is unchanged from when the wall existed — opening the site to
+readers was deliberately not extended to widening search exposure.
+
+Known tradeoff: because SSR HTML is what readers and Googlebot both receive, adult titles'
+*names* now appear in indexed grid HTML. Titles are never rewritten — they are the search
+queries that bring readers in. `sanitize-descriptions.js` is the mitigation on the text
+side; run it after adding any title whose synopsis leans suggestive.
+
+The admin panel still exposes the 18+ checkbox so the flag stays editable.
 
 ## Caching
 

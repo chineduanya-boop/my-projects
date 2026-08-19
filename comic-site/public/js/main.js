@@ -32,8 +32,7 @@ function chapterUrl(slug, num) {
 
 // ── Continue Reading ──────────────────────────────────────────────────────────
 // Injected entirely client-side from localStorage (written by reader.js). It is never
-// server-rendered, which is deliberate: a reader's history can include adult titles and
-// must never reach crawlable HTML.
+// server-rendered — a per-reader history has no business in shared, crawlable HTML.
 function renderContinueReading() {
   let entries;
   try { entries = Object.entries(JSON.parse(localStorage.getItem('mv_progress') || '{}')); }
@@ -61,7 +60,7 @@ function renderContinueReading() {
       <a class="comic-card" href="${chapterUrl(e.slug, e.chapter)}">
         <div class="comic-card-cover" data-progress="Chapter ${e.chapter}">
           ${e.cover
-            ? `<img src="${e.cover}" alt="${(e.title || e.slug).replace(/"/g, '&quot;')}" loading="lazy"${e.adult ? ' class="adult-blur"' : ''} />`
+            ? `<img src="${e.cover}" alt="${(e.title || e.slug).replace(/"/g, '&quot;')}" loading="lazy" />`
             : `<div class="no-cover"><i class="fa fa-book-open"></i></div>`}
         </div>
         <div class="comic-card-info">
@@ -80,16 +79,14 @@ function renderContinueReading() {
 
 // Comic card HTML
 function comicCard(c) {
-  const adult = c.is_adult === 1;
   const cover = c.cover_image
-    ? `<img src="${c.cover_image}" alt="${c.title}" loading="lazy"${adult ? ' class="adult-blur"' : ''} />`
+    ? `<img src="${c.cover_image}" alt="${c.title}" loading="lazy" />`
     : `<div class="no-cover"><i class="fa fa-book-open"></i><span>No Cover</span></div>`;
   const statusClass = { Ongoing: 'status-ongoing', Completed: 'status-completed', Hiatus: 'status-hiatus' }[c.status] || 'status-ongoing';
   return `
     <a class="comic-card" href="${comicUrl(c)}">
       <div class="comic-card-cover">
         ${cover}
-        ${adult ? '<span class="adult-badge">18+</span>' : ''}
         <span class="comic-status-badge ${statusClass}">${c.status}</span>
         <span class="comic-chapters-badge">${c.chapter_count || 0} ch</span>
       </div>
@@ -157,11 +154,11 @@ function initHeroSlider(container) {
 async function loadHero() {
   const hero = document.getElementById('heroSection');
   if (!hero) return;
-  // SSR already rendered the slides — just set up interactivity, unless the reader has
-  // 18+ on, in which case the SSR set is the clean subset and we re-render.
-  if (window.HOME_SSR && !window.ADULT_ON) { initHeroSlider(hero); return; }
+  // SSR already rendered the slides — just set up interactivity. The SSR set is now the
+  // whole catalogue, so there is never a subset to re-render over.
+  if (window.HOME_SSR) { initHeroSlider(hero); return; }
   try {
-    const data = await fetch(`/api/comics?sort=views&limit=6&adult=${window.adultParam ? window.adultParam() : '0'}`).then(r => r.json());
+    const data = await fetch(`/api/comics?sort=views&limit=6`).then(r => r.json());
     const comics = data.comics || [];
     if (!comics.length) { hero.innerHTML = `<div class="hero-empty"><i class="fa fa-book-open"></i><p>No comics yet. <a href="/admin" style="color:var(--red)">Upload some!</a></p></div>`; return; }
     renderHero(hero, comics);
@@ -209,33 +206,33 @@ function renderHero(container, comics) {
 
 // Load new releases row
 async function loadNewReleases() {
-  if (window.HOME_SSR && !window.ADULT_ON) return;
+  if (window.HOME_SSR) return;
   const el = document.getElementById('newReleasesRow');
   if (!el) return;
   try {
-    const comics = await fetch(`/api/comics/new-releases?adult=${window.adultParam ? window.adultParam() : '0'}`).then(r => r.json());
+    const comics = await fetch(`/api/comics/new-releases`).then(r => r.json());
     el.innerHTML = comics.length ? comics.map(comicCard).join('') : '<p style="color:var(--text3);padding:20px">No releases yet.</p>';
   } catch { el.innerHTML = '<p style="color:var(--text3);padding:20px">Failed to load.</p>'; }
 }
 
 // Load popular grid
 async function loadPopular() {
-  if (window.HOME_SSR && !window.ADULT_ON) return;
+  if (window.HOME_SSR) return;
   const el = document.getElementById('popularGrid');
   if (!el) return;
   try {
-    const comics = await fetch(`/api/comics/popular?adult=${window.adultParam ? window.adultParam() : '0'}`).then(r => r.json());
+    const comics = await fetch(`/api/comics/popular`).then(r => r.json());
     el.innerHTML = comics.length ? comics.map(comicCard).join('') : '<p style="color:var(--text3);padding:20px">No comics yet.</p>';
   } catch { el.innerHTML = '<p style="color:var(--text3);padding:20px">Failed to load.</p>'; }
 }
 
 // Load a genre category row
 async function loadGenreRow(genre, elementId) {
-  if (window.HOME_SSR && !window.ADULT_ON) return;
+  if (window.HOME_SSR) return;
   const el = document.getElementById(elementId);
   if (!el) return;
   try {
-    const data = await fetch(`/api/comics?genre=${encodeURIComponent(genre)}&limit=12&sort=views&adult=${window.adultParam ? window.adultParam() : '0'}`).then(r => r.json());
+    const data = await fetch(`/api/comics?genre=${encodeURIComponent(genre)}&limit=12&sort=views`).then(r => r.json());
     el.innerHTML = data.comics && data.comics.length
       ? data.comics.map(comicCard).join('')
       : `<p style="color:var(--text3);padding:20px">No ${genre} comics yet.</p>`;
@@ -244,11 +241,11 @@ async function loadGenreRow(genre, elementId) {
 
 // Load most viewed row
 async function loadMostViewed() {
-  if (window.HOME_SSR && !window.ADULT_ON) return;
+  if (window.HOME_SSR) return;
   const el = document.getElementById('mostViewedRow');
   if (!el) return;
   try {
-    const data = await fetch(`/api/comics?sort=views&limit=12&adult=${window.adultParam ? window.adultParam() : '0'}`).then(r => r.json());
+    const data = await fetch(`/api/comics?sort=views&limit=12`).then(r => r.json());
     el.innerHTML = data.comics && data.comics.length
       ? data.comics.map(comicCard).join('')
       : '<p style="color:var(--text3);padding:20px">No comics yet.</p>';
@@ -257,7 +254,7 @@ async function loadMostViewed() {
 
 // Load genre tags
 async function loadGenreTags() {
-  if (window.HOME_SSR && !window.ADULT_ON) return;
+  if (window.HOME_SSR) return;
   const el = document.getElementById('genreTags');
   if (!el) return;
   try {

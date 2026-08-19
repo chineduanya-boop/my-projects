@@ -23,9 +23,8 @@ document.getElementById('hamburger')?.addEventListener('click', () => {
 
 // Comic card
 function comicCard(c) {
-  const adult = c.is_adult === 1;
   const cover = c.cover_image
-    ? `<img src="${c.cover_image}" alt="${c.title}" loading="lazy"${adult ? ' class="adult-blur"' : ''} />`
+    ? `<img src="${c.cover_image}" alt="${c.title}" loading="lazy" />`
     : `<div class="no-cover"><i class="fa fa-book-open"></i></div>`;
   const statusClass = { Ongoing: 'status-ongoing', Completed: 'status-completed', Hiatus: 'status-hiatus' }[c.status] || 'status-ongoing';
   const url = `/${c.slug || c.id}`;
@@ -33,7 +32,6 @@ function comicCard(c) {
     <a class="comic-card" href="${url}">
       <div class="comic-card-cover">
         ${cover}
-        ${adult ? '<span class="adult-badge">18+</span>' : ''}
         <span class="comic-status-badge ${statusClass}">${c.status}</span>
         <span class="comic-chapters-badge">${c.chapter_count || 0} ch</span>
       </div>
@@ -82,9 +80,7 @@ async function loadComics(reset = false) {
   const sort = document.getElementById('sortFilter').value;
   const search = document.getElementById('searchInput').value;
 
-  // adult=all only when the reader has opted in; otherwise the API's default excludes it.
-  const adult = window.adultParam ? window.adultParam() : '0';
-  const url = `/api/comics?limit=${limit}&offset=${currentOffset}&adult=${adult}${genre ? `&genre=${encodeURIComponent(genre)}` : ''}${status ? `&status=${encodeURIComponent(status)}` : ''}${sort ? `&sort=${sort}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}`;
+  const url = `/api/comics?limit=${limit}&offset=${currentOffset}${genre ? `&genre=${encodeURIComponent(genre)}` : ''}${status ? `&status=${encodeURIComponent(status)}` : ''}${sort ? `&sort=${sort}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}`;
 
   try {
     const data = await fetch(url).then(r => r.json());
@@ -138,14 +134,12 @@ document.getElementById('loadMoreBtn').addEventListener('click', () => loadComic
 
 loadGenreFilter();
 
-if (window.BROWSE_SSR && !window.ADULT_ON) {
+if (window.BROWSE_SSR) {
   // Grid is already rendered by SSR — just show/hide Load More if needed
   const loadMoreBtn = document.getElementById('loadMoreBtn');
   const loadingEl   = document.getElementById('browseLoading');
   if (loadingEl)   loadingEl.style.display = 'none';
   if (loadMoreBtn) loadMoreBtn.style.display = currentOffset < total ? 'block' : 'none';
 } else {
-  // Either no SSR, or the reader has 18+ enabled — in which case the server-rendered
-  // grid is the clean subset and we replace it with the full one client-side.
   loadComics(true);
 }

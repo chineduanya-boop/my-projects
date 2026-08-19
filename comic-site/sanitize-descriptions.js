@@ -3,10 +3,10 @@
  * sanitize-descriptions.js — rewrites suggestive synopses as neutral plot summaries.
  *
  * Descriptions render inside <meta name="description">, the JSON-LD, and the page body.
- * Even though adult titles are excluded from the home, browse and genre pages, their own
- * book pages ARE indexed (by design — people search these titles by name), so the text
- * on them is read by Google's classifiers. A few synopses leaned on innuendo where a
- * plain plot summary works just as well.
+ * They now also render on the home, browse and genre grids, which every reader and
+ * crawler sees — the catalogue is no longer split into a clean subset and a gated one.
+ * That makes the wording of these synopses the main text signal the site emits, so any
+ * that leaned on innuendo have been restated as plain plot summaries.
  *
  * TITLES ARE NEVER TOUCHED. They are the search queries that bring readers in;
  * "Sexual Exploits" has to stay "Sexual Exploits" to be findable at all. The mitigation
@@ -65,6 +65,56 @@ const REWRITES = {
     "RJ takes a summer job at his wealthy uncle's villa in Los Angeles, expecting easy money " +
     "and little else. What he finds instead is a household full of tensions, rivalries and " +
     "expectations he is completely unprepared for.",
+
+  // ── Second wave ─────────────────────────────────────────────────────────────
+  // Added when the 18+ wall came down. These sit on grids that are now fully public,
+  // so the same treatment applies: keep the premise, drop the innuendo.
+
+  'fathers-lust':
+    "Yeon-hee's family is struggling, crammed into a single rooftop room and barely getting " +
+    "by. When her mother remarries, the arrival of a stepfather reshapes the household in " +
+    "ways none of them are prepared for and long-buried resentments surface. A dark family " +
+    "drama about what people conceal from each other while living under one roof.",
+
+  'madam':
+    "A portrait of a poised, well-connected woman moving through a social world where " +
+    "influence is currency and nothing is given freely. As old obligations resurface, she " +
+    "has to work out which of her relationships are worth keeping and which were only ever " +
+    "transactions.",
+
+  'sexual-exploits':
+    "An anthology series with a rotating cast, each chapter a self-contained story about " +
+    "people whose ordinary lives take a sudden turn. Less about any one character than " +
+    "about how quickly circumstances change once a decision has been made, and what those " +
+    "changes end up costing.",
+
+  'rooftop-sex-king':
+    "Kim Hyungsik has always been deeply insecure about himself. When a strange opportunity " +
+    "presents itself — a series of escalating personal challenges that promise to change how " +
+    "he sees himself — he has to decide how far he is willing to go. A comedy about " +
+    "self-image, ambition, and the limits people set for themselves.",
+
+  'secret-affection':
+    "Two people care for each other in a way neither can openly acknowledge, and the effort " +
+    "of keeping it hidden quietly shapes every conversation they do manage to have. A story " +
+    "about what goes unsaid and how long it can be left that way.",
+
+  'winter-games':
+    "College student Jeff arrives to spend Christmas at the home of his stepsister's friend, " +
+    "expecting a full house. A snowstorm delays everyone else, leaving him with only his two " +
+    "hosts — Stacy's mother Chantelle and Amanda's mother Juliette — for company. Several " +
+    "days snowed in together turn a routine holiday into something far more complicated.",
+
+  'anny-my-dear-older-sister':
+    "A 3D-rendered series following Anny through a tangle of family loyalties and strained " +
+    "friendships. Each turn of the story is set off by a decision somebody made too quickly, " +
+    "and the fallout the rest of them have to live with.",
+
+  'summer-retreat':
+    "Kim Se Myung, a medical student from a humble background, spends his summer tutoring in " +
+    "a rural town. What begins as a straightforward job grows complicated as he is drawn into " +
+    "the tensions of the household he is staying with and finds his own assumptions about " +
+    "himself tested.",
 };
 
 (async () => {

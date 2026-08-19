@@ -240,90 +240,6 @@ input, select, textarea { font: inherit; color: inherit; }
 .cat-drama   { color: #4ecdc4; }
 .cat-fire    { color: #f4a261; }
 
-/* ===== ADULT BADGE ===== */
-.adult-badge {
-  background: #c0392b; color: #fff;
-  font-size: 11px; font-weight: 700;
-  padding: 2px 8px; border-radius: 4px;
-  letter-spacing: 0.5px;
-}
-
-/* ===== ADULT TOGGLE (header button) ===== */
-.adult-toggle {
-  display: flex; align-items: center; gap: 5px;
-  padding: 5px 11px; border-radius: 20px;
-  border: 1px solid var(--border);
-  font-size: 12px; font-weight: 700; color: var(--text3);
-  cursor: pointer; transition: all 0.2s; white-space: nowrap;
-  background: none;
-}
-.adult-toggle:hover { border-color: #c0392b; color: #c0392b; }
-.adult-toggle.active { background: #c0392b; color: #fff; border-color: #c0392b; }
-
-/* ===== ADULT CONFIRM MODAL (small popup) ===== */
-.age-confirm-overlay {
-  position: fixed; inset: 0; z-index: 9999;
-  background: rgba(0,0,0,0.75);
-  display: flex; align-items: center; justify-content: center; padding: 20px;
-}
-.age-confirm-box {
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 16px; padding: 36px 32px;
-  max-width: 400px; width: 100%;
-  text-align: center; box-shadow: 0 8px 40px rgba(0,0,0,0.6);
-}
-.age-confirm-box .age-confirm-icon { font-size: 40px; margin-bottom: 14px; }
-.age-confirm-box h3 { font-size: 19px; font-weight: 700; margin-bottom: 10px; }
-.age-confirm-box p { color: var(--text2); margin-bottom: 24px; line-height: 1.5; font-size: 14px; }
-.age-confirm-actions { display: flex; flex-direction: column; gap: 10px; }
-.btn-age-confirm {
-  background: var(--red); color: #fff;
-  padding: 12px 24px; border-radius: var(--radius);
-  font-size: 15px; font-weight: 600; cursor: pointer;
-  border: none; transition: background 0.2s;
-}
-.btn-age-confirm:hover { background: var(--red-dark); }
-.btn-age-cancel {
-  color: var(--text3); font-size: 14px; padding: 10px;
-  border: 1px solid var(--border); border-radius: var(--radius);
-  cursor: pointer; transition: all 0.2s; background: none;
-}
-.btn-age-cancel:hover { color: var(--text); background: var(--bg3); }
-
-/* ===== ADULT TOGGLE SWITCH (header) ===== */
-.adult-toggle-wrap {
-  display: flex; align-items: center; gap: 6px;
-  cursor: pointer; user-select: none; flex-shrink: 0;
-}
-.adult-toggle-lbl {
-  font-size: 11px; font-weight: 700; color: var(--text3);
-  transition: color 0.2s;
-}
-.adult-toggle-track {
-  width: 36px; height: 20px; border-radius: 10px;
-  background: var(--bg3); border: 1px solid var(--border);
-  position: relative; transition: background 0.25s, border-color 0.25s;
-  flex-shrink: 0;
-}
-.adult-toggle-knob {
-  position: absolute; top: 3px; left: 3px;
-  width: 12px; height: 12px; border-radius: 50%;
-  background: var(--text3); transition: transform 0.25s, background 0.25s;
-}
-.adult-toggle-wrap.on .adult-toggle-lbl { color: #c0392b; }
-.adult-toggle-wrap.on .adult-toggle-track { background: #c0392b; border-color: #c0392b; }
-.adult-toggle-wrap.on .adult-toggle-knob { transform: translateX(16px); background: #fff; }
-
-/* ===== ADULT BLOCKED (comic page) ===== */
-.adult-blocked {
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 60px 40px;
-  text-align: center; margin: 40px auto; max-width: 500px;
-}
-.adult-blocked .adult-blocked-icon { font-size: 48px; margin-bottom: 16px; }
-.adult-blocked h3 { font-size: 20px; font-weight: 700; margin-bottom: 10px; }
-.adult-blocked p { color: var(--text2); margin-bottom: 24px; line-height: 1.5; }
-
 /* ===== COMIC CARD ===== */
 .comic-card {
   background: var(--card); border-radius: var(--radius);
@@ -893,49 +809,7 @@ input[type="checkbox"]:checked ~ .toggle-switch::after { transform: translateX(1
   .context-comic-cover { flex: none; }
 }
 
-/* ===== ADULT CONTENT TOGGLE ===== */
-.adult-toggle {
-  display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 11px;
-  border: 1px solid var(--border); border-radius: var(--radius);
-  background: var(--bg3); color: var(--text3);
-  font-size: 12px; font-weight: 700; letter-spacing: 0.3px;
-}
-.adult-toggle:hover { border-color: var(--text2); color: var(--text2); }
-.adult-toggle.is-on { background: var(--red); border-color: var(--red); color: #fff; }
-.adult-toggle i { font-size: 12px; }
-
-/* Adult covers arrive blurred so an accidental toggle is not jarring; hovering or
-   focusing the card reveals them. */
-.adult-blur { filter: blur(14px); transition: filter 0.18s; }
-.comic-card:hover .adult-blur,
-.comic-card:focus-within .adult-blur { filter: none; }
-
 .comic-card-cover { position: relative; }
-.adult-badge {
-  position: absolute; top: 6px; left: 6px; z-index: 2;
-  background: var(--red); color: #fff; font-size: 10px; font-weight: 800;
-  padding: 2px 6px; border-radius: 4px; letter-spacing: 0.4px;
-}
-
-/* Interstitial on an adult title's own page */
-.adult-gate {
-  position: fixed; inset: 0; z-index: 998; background: var(--bg);
-  display: flex; align-items: center; justify-content: center; padding: 24px;
-}
-.adult-gate-inner {
-  max-width: 420px; text-align: center;
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 32px 28px; box-shadow: var(--shadow);
-}
-.adult-gate-inner i { font-size: 34px; color: var(--red); margin-bottom: 14px; }
-.adult-gate-inner h2 { font-size: 19px; margin-bottom: 10px; }
-.adult-gate-inner p { color: var(--text2); font-size: 14px; margin-bottom: 22px; }
-.adult-gate-actions { display: flex; gap: 10px; }
-.adult-gate-actions a, .adult-gate-actions button {
-  flex: 1; padding: 11px; border-radius: var(--radius); font-size: 14px; font-weight: 600;
-  border: 1px solid var(--border); color: var(--text2); background: var(--bg3);
-}
-.adult-gate-actions .confirm { background: var(--red); border-color: var(--red); color: #fff; }
 
 /* Full catalogue index on /browse — restores crawlable links to every book page.
    See the note in the /browse route in server.js. */
@@ -983,33 +857,6 @@ input[type="checkbox"]:checked ~ .toggle-switch::after { transform: translateX(1
 }
 .related-card-meta { font-size: 11.5px; color: var(--text2); }
 .related-card:hover .related-card-title { color: var(--red); }
-
-/* One-time discovery prompt for the 18+ toggle. Injected by adult.js, never
-   server-rendered — see the note in that file. */
-.adult-prompt {
-  position: fixed; z-index: 997; left: 50%; transform: translateX(-50%);
-  bottom: 18px; width: calc(100% - 32px); max-width: 560px;
-  display: flex; align-items: center; justify-content: space-between; gap: 14px;
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 13px 16px; box-shadow: var(--shadow);
-  font-size: 13.5px; color: var(--text2);
-}
-.adult-prompt strong { color: var(--text); }
-.adult-prompt-actions { display: flex; gap: 8px; flex-shrink: 0; }
-.adult-prompt-actions button {
-  padding: 7px 13px; border-radius: var(--radius); font-size: 13px; font-weight: 600;
-  border: 1px solid var(--border); background: var(--bg3); color: var(--text2);
-  cursor: pointer; white-space: nowrap;
-}
-.adult-prompt-actions .adult-prompt-show {
-  background: var(--red); border-color: var(--red); color: #fff;
-}
-@media (max-width: 560px) {
-  .adult-prompt { flex-direction: column; align-items: stretch; text-align: center; }
-  .adult-prompt-actions button { flex: 1; }
-}
-
-@media (max-width: 700px) { .adult-toggle span { display: none; } }
 
 /* ===== KEYBOARD SHORTCUT OVERLAY ===== */
 .kb-help {

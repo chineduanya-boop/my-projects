@@ -5,9 +5,8 @@
 const container = document.getElementById('readerContainer');
 
 // ── Reading progress ──────────────────────────────────────────────────────────
-// Kept in localStorage rather than on the server: there are no user accounts, and it
-// also means progress never touches the SSR HTML, so an adult title a reader has
-// opened can never leak into a crawlable "Continue Reading" row.
+// Kept in localStorage rather than on the server: there are no user accounts, and a
+// reading history is personal enough that it should not sit in crawlable HTML.
 const PROGRESS_KEY = 'mv_progress';
 const PROGRESS_MAX = 40;
 
@@ -19,7 +18,6 @@ function saveProgress() {
       chapter: window.CHAPTER_NUMBER,
       title: window.CHAPTER_COMIC_TITLE || '',
       cover: window.CHAPTER_COVER || '',
-      adult: window.CHAPTER_IS_ADULT ? 1 : 0,
       ts: Date.now(),
     };
     // Evict least-recently-read once over the cap.

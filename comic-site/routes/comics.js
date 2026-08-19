@@ -23,14 +23,14 @@ const FIVE_MIN = 5 * 60 * 1000;
 
 router.get('/comics', async (req, res) => {
   try {
-    const { genre, status, search, sort = 'updated', limit = 24, offset = 0, adult = '0' } = req.query;
+    const { genre, status, search, sort = 'updated', limit = 24, offset = 0 } = req.query;
     const params = [];
     let p = 1;
     let where = 'WHERE 1=1';
 
-    // Adult filter: '1' = only adult, '0' (default) = exclude adult, 'all' = include all
-    if (adult === '1')       { where += ` AND c.is_adult = 1`; }
-    else if (adult !== 'all'){ where += ` AND (c.is_adult IS NULL OR c.is_adult = 0)`; }
+    // No adult filter. The catalogue is served whole to every caller; is_adult now
+    // affects search-engine exposure only (see the INDEX_SAFE note in server.js).
+    // A stale ?adult= param from a cached page is simply ignored rather than honoured.
 
     if (genre)  { where += ` AND c.genres LIKE $${p++}`;                                     params.push(`%"${genre}"%`); }
     if (status) { where += ` AND c.status = $${p++}`;                                        params.push(status); }
@@ -50,15 +50,13 @@ router.get('/comics', async (req, res) => {
 
 router.get('/comics/featured', async (req, res) => {
   try {
-    const includeAdult = req.query.adult === 'all';
-    const cacheKey = includeAdult ? 'featured-adult' : 'featured';
+    const cacheKey = 'featured';
     const cached = getCache(cacheKey);
     if (cached) { res.set('Cache-Control', 'public, max-age=300'); return res.json(cached); }
 
-    const adultFilter = includeAdult ? '' : 'AND (c.is_adult IS NULL OR c.is_adult = 0)';
     const { rows } = await pool.query(`
       SELECT c.*, (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) AS chapter_count
-      FROM comics c WHERE c.featured = 1 ${adultFilter} ORDER BY c.views DESC LIMIT 6
+      FROM comics c WHERE c.featured = 1 ORDER BY c.views DESC LIMIT 6
     `);
     setCache(cacheKey, rows, FIVE_MIN);
     res.set('Cache-Control', 'public, max-age=300');
@@ -68,15 +66,13 @@ router.get('/comics/featured', async (req, res) => {
 
 router.get('/comics/popular', async (req, res) => {
   try {
-    const includeAdult = req.query.adult === 'all';
-    const cacheKey = includeAdult ? 'popular-adult' : 'popular';
+    const cacheKey = 'popular';
     const cached = getCache(cacheKey);
     if (cached) { res.set('Cache-Control', 'public, max-age=300'); return res.json(cached); }
 
-    const adultFilter = includeAdult ? '' : 'WHERE (c.is_adult IS NULL OR c.is_adult = 0)';
     const { rows } = await pool.query(`
       SELECT c.*, (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) AS chapter_count
-      FROM comics c ${adultFilter} ORDER BY c.views DESC LIMIT 12
+      FROM comics c ORDER BY c.views DESC LIMIT 12
     `);
     setCache(cacheKey, rows, FIVE_MIN);
     res.set('Cache-Control', 'public, max-age=300');
@@ -86,18 +82,15 @@ router.get('/comics/popular', async (req, res) => {
 
 router.get('/comics/new-releases', async (req, res) => {
   try {
-    const includeAdult = req.query.adult === 'all';
-    const cacheKey = includeAdult ? 'new-releases-adult' : 'new-releases';
+    const cacheKey = 'new-releases';
     const cached = getCache(cacheKey);
     if (cached) { res.set('Cache-Control', 'public, max-age=300'); return res.json(cached); }
 
-    const adultFilter = includeAdult ? '' : 'AND (c.is_adult IS NULL OR c.is_adult = 0)';
     const { rows } = await pool.query(`
       SELECT c.*, (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) AS chapter_count,
         (SELECT created_at FROM chapters WHERE comic_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_chapter_date
       FROM comics c
       WHERE (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) > 0
-        ${adultFilter}
       ORDER BY last_chapter_date DESC LIMIT 12
     `);
     setCache(cacheKey, rows, FIVE_MIN);

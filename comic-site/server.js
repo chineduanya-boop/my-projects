@@ -329,7 +329,7 @@ async function countIndexableChapters() {
     `SELECT COUNT(*) AS n FROM (
        SELECT DISTINCT ch.comic_id, ch.chapter_number FROM chapters ch
        JOIN comics c ON c.id = ch.comic_id
-       WHERE c.seo_indexed = 1 AND ${SAFE} AND c.slug IS NOT NULL AND c.slug <> ''
+       WHERE c.seo_indexed = 1 AND ${INDEX_SAFE} AND c.slug IS NOT NULL AND c.slug <> ''
      ) t`
   );
   return parseInt(rows[0].n, 10);
@@ -362,7 +362,7 @@ app.get('/sitemap-comics.xml', async (req, res) => {
     await sendXml(res, 'comics', async () => {
       const { rows } = await pool.query(
         `SELECT slug, title, cover_image, updated_at FROM comics c
-         WHERE ${SAFE} AND slug IS NOT NULL AND slug <> '' ORDER BY views DESC`
+         WHERE ${INDEX_SAFE} AND slug IS NOT NULL AND slug <> '' ORDER BY views DESC`
       );
       const urls = [
         `<url><loc>${SITE_URL}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
@@ -435,7 +435,7 @@ app.get('/sitemap-chapters-:page.xml', async (req, res) => {
       const { rows } = await pool.query(
         `SELECT DISTINCT c.slug, ch.chapter_number, MAX(ch.created_at) AS created_at
          FROM chapters ch JOIN comics c ON c.id = ch.comic_id
-         WHERE c.seo_indexed = 1 AND ${SAFE} AND c.slug IS NOT NULL AND c.slug <> ''
+         WHERE c.seo_indexed = 1 AND ${INDEX_SAFE} AND c.slug IS NOT NULL AND c.slug <> ''
          GROUP BY c.slug, ch.chapter_number
          ORDER BY c.slug, ch.chapter_number
          LIMIT $1 OFFSET $2`,
@@ -533,16 +533,26 @@ const SSR_CHAPTERS = 60;
 const cleanChapterTitle = (ch) =>
   ch.title && !/^chapter\s*[\d.]+$/i.test(ch.title.trim()) ? ch.title : '';
 
-// â”€â”€ Adult content containment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Adult titles are excluded from every server-rendered surface, not just from the
-// sitemaps. Their names alone ("Father's Lust", "Sexual Exploits") are enough for
-// Google to classify the *containing* page as adult, and the home page, browse grid
-// and genre grids are all indexed. Keeping them out of the SSR HTML is what protects
-// the 41 clean titles from SafeSearch suppression.
+// â”€â”€ Adult content: on-site parity, contained indexing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Readers see one catalogue. Every on-site surface — home rows, browse grid, genre
+// grids, search, related series — lists all 74 titles identically, with no toggle,
+// interstitial, blur or badge. That is what BROWSE_ALL expresses: no filter at all.
 //
-// They remain fully reachable: direct URL works, and the API still serves them via
-// ?adult=1 / ?adult=all for client-side browsing.
-const SAFE = 'c.is_adult = 0';
+// is_adult did not go away; it stopped controlling visibility and now controls only
+// search-engine exposure. INDEX_SAFE is the surviving containment, applied to the
+// three places where an adult title would hand Google a lasting signal:
+//   - sitemap-comics.xml and the chapter sitemaps (adult URLs stay in sitemap-mature)
+//   - the site-wide og:image fallback
+// Their book pages keep max-image-preview:none and their chapter pages stay noindex,
+// both unchanged from before — see the robots metas further down.
+//
+// The residual tradeoff, stated plainly: because SSR HTML is what readers *and*
+// Googlebot both receive, showing these titles on the home and browse grids does put
+// their names into indexed HTML. Names like "Father's Lust" carry an adult signal that
+// no description rewrite can neutralise. That was an accepted call — parity for
+// readers, with indexing of the books themselves still held back.
+const BROWSE_ALL = '1=1';
+const INDEX_SAFE = 'c.is_adult = 0';
 
 // â”€â”€ Genre helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const genreSlug = (g) => g.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -580,7 +590,7 @@ async function getRelatedComics(comicId, genres, limit = 6) {
       `SELECT c.title, c.slug, c.cover_image, c.views,
               (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) AS chapter_count
          FROM comics c
-        WHERE ${SAFE} AND c.id <> $1 AND c.slug IS NOT NULL AND c.slug <> ''
+        WHERE ${BROWSE_ALL} AND c.id <> $1 AND c.slug IS NOT NULL AND c.slug <> ''
           AND (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) > 0
           ${genreClause}
         ORDER BY c.views ASC
@@ -593,7 +603,7 @@ async function getRelatedComics(comicId, genres, limit = 6) {
         `SELECT c.title, c.slug, c.cover_image, c.views,
                 (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) AS chapter_count
            FROM comics c
-          WHERE ${SAFE} AND c.id <> $1 AND c.slug IS NOT NULL AND c.slug <> ''
+          WHERE ${BROWSE_ALL} AND c.id <> $1 AND c.slug IS NOT NULL AND c.slug <> ''
             AND (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) > 0
           ORDER BY c.views ASC LIMIT $2`, [comicId, limit * 3]);
       for (const r of extra) {
@@ -613,9 +623,9 @@ let _genreMap = null;
 let _genreMapTs = 0;
 async function getGenreMap() {
   if (_genreMap && Date.now() - _genreMapTs < 5 * 60 * 1000) return _genreMap;
-  // Adult titles must not contribute to genre counts, copy or schema â€” those strings
-  // render on indexed pages.
-  const { rows } = await pool.query('SELECT genres FROM comics c WHERE ' + SAFE);
+  // Counts every title, so the genre nav and the counts under it match what a reader
+  // actually finds on the genre page.
+  const { rows } = await pool.query('SELECT genres FROM comics c WHERE ' + BROWSE_ALL);
   const counts = new Map();
   rows.forEach(r => {
     try { JSON.parse(r.genres).forEach(g => counts.set(g, (counts.get(g) || 0) + 1)); } catch {}
@@ -648,7 +658,7 @@ async function getPopularCover() {
   if (_popularCover && Date.now() - _popularCoverTs < 5 * 60 * 1000) return _popularCover;
   const { rows } = await pool.query(
     // Never let an adult cover become the site-wide og:image fallback.
-    `SELECT cover_image FROM comics c WHERE ${SAFE} AND cover_image IS NOT NULL AND cover_image <> '' ORDER BY views DESC LIMIT 1`
+    `SELECT cover_image FROM comics c WHERE ${INDEX_SAFE} AND cover_image IS NOT NULL AND cover_image <> '' ORDER BY views DESC LIMIT 1`
   );
   _popularCover = rows[0]?.cover_image || '';
   _popularCoverTs = Date.now();
@@ -742,9 +752,10 @@ async function serveComicPage(comic, comicId, req, res) {
   <title>${esc(pageTitle)}</title>
   <meta name="description" content="${esc(desc)}" />
   <meta name="keywords" content="${esc([comic.title, comic.author, ...genres, 'read free', 'manga', 'manhua', 'manhwa', 'MangVault'].join(', '))}" />
-  <!-- Adult book pages ARE indexable: people search these titles by name, and the
-       protection for the clean catalogue comes from keeping them off the home, browse
-       and genre pages (the SAFE predicate), not from hiding the book page itself.
+  <!-- Adult book pages ARE indexable: people search these titles by name. This posture
+       is deliberately unchanged by the move to on-site parity — opening the catalogue to
+       readers was not meant to also widen search exposure, so nothing here was loosened
+       (no sitemap entry, no image preview) or tightened (still index, follow).
        max-image-preview:none is the important part â€” it keeps explicit cover art out
        of search result thumbnails and Google Images, which is the strongest adult
        signal a page can emit. Their chapter pages stay noindex. -->
@@ -792,7 +803,6 @@ async function serveComicPage(comic, comicId, req, res) {
     window.COMIC_SLUG = ${JSON.stringify(slug)};
     window.COMIC_TITLE = ${JSON.stringify(comic.title)};
     window.COMIC_COVER = ${JSON.stringify(coverImage || '')};
-    window.COMIC_IS_ADULT = ${comic.is_adult ? 1 : 0};
     window.COMIC_CHAPTER_TOTAL = ${chapters.length};
     window.COMIC_SSR_CHAPTERS = ${SSR_CHAPTERS};
     window.COMIC_SSR = true;
@@ -1011,7 +1021,7 @@ async function serveChapterPage(comic, chapter, chapters, req, res) {
 
   pool.query('UPDATE chapters SET views = views + 1 WHERE id = $1', [chapter.id]).catch(() => {});
 
-  // Staged rollout gate, plus a hard adult exclusion â€” see the SAFE note above.
+  // Staged rollout gate, plus a hard adult exclusion â€” see the INDEX_SAFE note above.
   const indexable = comic.seo_indexed === 1 && !comic.is_adult;
 
   // A distinct chapter title (not just "Chapter 12") is worth putting in the <title>.
@@ -1090,7 +1100,6 @@ async function serveChapterPage(comic, chapter, chapters, req, res) {
     window.CHAPTER_NUMBER = ${num};
     window.CHAPTER_COMIC_TITLE = ${JSON.stringify(comic.title)};
     window.CHAPTER_COVER = ${JSON.stringify(coverImage || '')};
-    window.CHAPTER_IS_ADULT = ${comic.is_adult ? 1 : 0};
     window.CHAPTER_SSR = true;
   </script>`;
 
@@ -1258,18 +1267,18 @@ app.get('/comic/:id', async (req, res) => {
 app.get('/', async (req, res) => {
   try {
     const cc = `(SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) AS chapter_count`;
-    // Romance fell to 2 books and Drama to 6 once adult titles were excluded, so those
-    // rows rendered nearly empty. Adventure (24) and Martial Arts (13) have real depth.
+    // Adventure (24) and Martial Arts (13) have real depth. Romance and Drama were thin
+    // only because adult titles used to be excluded — worth revisiting now that they count.
     const [heroRes, newRelRes, actionRes, adventureRes, fantasyRes, martialRes, mostViewedRes, popularRes, genreRes] = await Promise.all([
-      pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${SAFE} ORDER BY c.views DESC LIMIT 6`),
-      pool.query(`SELECT c.*, ${cc}, (SELECT created_at FROM chapters WHERE comic_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_chapter_date FROM comics c WHERE ${SAFE} AND (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) > 0 ORDER BY last_chapter_date DESC LIMIT 12`),
-      pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${SAFE} AND c.genres LIKE $1 ORDER BY c.views DESC LIMIT 12`, ['%"Action"%']),
-      pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${SAFE} AND c.genres LIKE $1 ORDER BY c.views DESC LIMIT 12`, ['%"Adventure"%']),
-      pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${SAFE} AND c.genres LIKE $1 ORDER BY c.views DESC LIMIT 12`, ['%"Fantasy"%']),
-      pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${SAFE} AND c.genres LIKE $1 ORDER BY c.views DESC LIMIT 12`, ['%"Martial Arts"%']),
-      pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${SAFE} ORDER BY c.views DESC LIMIT 12`),
-      pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${SAFE} ORDER BY c.views DESC LIMIT 24`),
-      pool.query('SELECT genres FROM comics c WHERE ' + SAFE),
+      pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${BROWSE_ALL} ORDER BY c.views DESC LIMIT 6`),
+      pool.query(`SELECT c.*, ${cc}, (SELECT created_at FROM chapters WHERE comic_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_chapter_date FROM comics c WHERE ${BROWSE_ALL} AND (SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) > 0 ORDER BY last_chapter_date DESC LIMIT 12`),
+      pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${BROWSE_ALL} AND c.genres LIKE $1 ORDER BY c.views DESC LIMIT 12`, ['%"Action"%']),
+      pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${BROWSE_ALL} AND c.genres LIKE $1 ORDER BY c.views DESC LIMIT 12`, ['%"Adventure"%']),
+      pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${BROWSE_ALL} AND c.genres LIKE $1 ORDER BY c.views DESC LIMIT 12`, ['%"Fantasy"%']),
+      pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${BROWSE_ALL} AND c.genres LIKE $1 ORDER BY c.views DESC LIMIT 12`, ['%"Martial Arts"%']),
+      pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${BROWSE_ALL} ORDER BY c.views DESC LIMIT 12`),
+      pool.query(`SELECT c.*, ${cc} FROM comics c WHERE ${BROWSE_ALL} ORDER BY c.views DESC LIMIT 24`),
+      pool.query('SELECT genres FROM comics c WHERE ' + BROWSE_ALL),
     ]);
 
     const genreSet = new Set();
@@ -1311,9 +1320,8 @@ app.get('/browse', async (req, res) => {
     const { genre, status, search, sort = 'updated' } = req.query;
     const params = [];
     let p = 1;
-    // Adult titles never appear in the server-rendered browse grid; the client can
-    // still request them through /api/comics?adult=1.
-    let where = `WHERE ${SAFE}`;
+    // The browse grid is the whole catalogue — no filter, server-rendered or otherwise.
+    let where = `WHERE ${BROWSE_ALL}`;
     if (genre)  { where += ` AND c.genres LIKE $${p++}`;                                     params.push(`%"${genre}"%`); }
     if (status) { where += ` AND c.status = $${p++}`;                                        params.push(status); }
     if (search) { where += ` AND (c.title ILIKE $${p} OR c.author ILIKE $${p+1})`; p += 2;  params.push(`%${search}%`, `%${search}%`); }
@@ -1346,7 +1354,7 @@ app.get('/browse', async (req, res) => {
     let catalogueHtml = '';
     if (!genre && !status && !search && total > comicsRes.rows.length) {
       const { rows: all } = await pool.query(
-        `SELECT title, slug FROM comics c WHERE ${SAFE} AND slug IS NOT NULL AND slug <> ''
+        `SELECT title, slug FROM comics c WHERE ${BROWSE_ALL} AND slug IS NOT NULL AND slug <> ''
          ORDER BY title ASC`);
       if (all.length) {
         catalogueHtml = `
@@ -1400,7 +1408,7 @@ app.get('/genre/:slug', async (req, res) => {
     const cc = `(SELECT COUNT(*) FROM chapters WHERE comic_id = c.id) AS chapter_count`;
     const { rows } = await pool.query(
       `SELECT c.*, ${cc} FROM comics c
-       WHERE ${SAFE} AND c.genres LIKE $1
+       WHERE ${BROWSE_ALL} AND c.genres LIKE $1
        ORDER BY c.views DESC LIMIT 48`,
       [`%"${name}"%`]
     );
