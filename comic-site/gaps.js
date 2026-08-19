@@ -16,6 +16,7 @@
  *
  *   node gaps.js                 both reports, human readable
  *   node gaps.js --list          bare copyable list of missing chapters only
+ *   node gaps.js --list --expand every number spelled out instead of 142-175
  *   node gaps.js --adult         include adult titles (excluded by default)
  *   node gaps.js --slug <slug>   one series
  */
@@ -85,7 +86,11 @@ const ONE = val('slug', null);
   };
 
   if (LIST_ONLY) {
-    gapReport.forEach(g => console.log(`${g.title} (${g.slug}): ${ranges(g.missing)}`));
+    // --expand spells every number out. Ranges are easier to read, but a flat list is
+    // what you want when you are ticking chapters off one at a time.
+    const fmt = has('expand') ? (a) => a.join(', ') : ranges;
+    gapReport.forEach(g => console.log(`${g.title} (${g.slug}): ${fmt(g.missing)}`));
+    console.log(`\n${gapReport.length} series, ${gapReport.reduce((s, g) => s + g.missing.length, 0)} chapters missing`);
     await pool.end();
     return;
   }
