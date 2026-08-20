@@ -46,7 +46,7 @@ npm install
 npm run post                      # post next queued tweet
 node post-now.js --id sl-01       # post a specific tweet by ID
 node post-now.js --random         # post a random tweet
-npm run schedule                  # start scheduler (4 posts/day + engagement)
+npm run schedule                  # start scheduler (4 posts/day, engagement off)
 node scheduler.js --post-now      # start scheduler and post one immediately
 ```
 
@@ -98,11 +98,28 @@ If no image is found for a tweet, it posts as text only.
 
 ## Automatic Schedule (when running `npm run schedule`)
 
-| Task | Times (WAT) |
-|------|-------------|
-| Post tweet | 9am, 12pm, 5pm, 9pm |
-| Engage (mentions, hashtags, follow-back) | 10am, 3pm, 8pm |
-| Quote-tweet trending posts | 2pm |
+**4 posts per day, on a fixed 7-day rotation.** Every day uses different clock
+times from the day before; after Sunday the same week repeats. Times below are
+UTC, with WAT (UTC+1) in brackets.
+
+| Day | Post times (UTC) | WAT |
+|-----|------------------|-----|
+| Mon | 07:15, 11:40, 16:25, 20:10 | 08:15, 12:40, 17:25, 21:10 |
+| Tue | 08:05, 12:20, 17:10, 21:30 | 09:05, 13:20, 18:10, 22:30 |
+| Wed | 06:50, 10:55, 15:45, 19:35 | 07:50, 11:55, 16:45, 20:35 |
+| Thu | 07:35, 11:15, 16:55, 20:45 | 08:35, 12:15, 17:55, 21:45 |
+| Fri | 08:25, 13:05, 17:35, 22:00 | 09:25, 14:05, 18:35, 23:00 |
+| Sat | 09:10, 14:30, 18:20, 21:15 | 10:10, 15:30, 19:20, 22:15 |
+| Sun | 07:55, 12:45, 16:10, 19:50 | 08:55, 13:45, 17:10, 20:50 |
+
+To change the schedule, edit `WEEKLY_SLOTS` in `scheduler.js` — keep 4 entries
+per day and the bot stays at 4 posts/day.
+
+**Engagement is off by default.** Likes, follow-backs, replies and auto-threads
+only run when `ENABLE_ENGAGEMENT=true` is set explicitly; otherwise the bot does
+nothing but publish its 4 scheduled posts, leaving all interaction to the account
+owner. `engage.js`, `quote-tweet.js` and `thread.js` can still be run by hand.
+
 
 ---
 

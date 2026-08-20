@@ -1,2 +1,7 @@
 [phases.install]
-cmds = ["npm ci", "npx playwright install chromium --with-deps"]
+# Playwright's chromium is only needed by the Facebook Groups bot (fb-scheduler.js).
+# The Twitter service leaves INSTALL_PLAYWRIGHT unset so its builds stay fast.
+cmds = [
+  "npm ci",
+  "if [ \"$INSTALL_PLAYWRIGHT\" = \"true\" ]; then npx playwright install chromium --with-deps; fi"
+]
